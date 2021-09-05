@@ -23,13 +23,13 @@ class BaseFileTests : public ::testing::Test {
   void SetUp() override {
     bfile = nullptr;
     bfile_name = "test_base";
-    system(("rm -rf " + bfile_name).c_str());
+    (void)system(("rm -rf " + bfile_name).c_str());
   }
   void TearDown() override {
     if (bfile) {
       delete bfile;
     }
-    system(("rm -rf " + bfile_name).c_str());
+    (void)system(("rm -rf " + bfile_name).c_str());
   }
 
   void NewBaseFile() {
