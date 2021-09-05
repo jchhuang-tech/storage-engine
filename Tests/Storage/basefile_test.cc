@@ -140,8 +140,6 @@ TEST_F(BaseFileTests, MultiThreadAccess) {
 
   // Step 4: Check raw file size: assert (using ASSERT_EQ) the file size to be
   // 10 * PAGE_SIZE * [number of threads] bytes.
-
-  // Step 5: Clean up by deleting the allocated BaseFile object and actual file.
 }
 
 int main(int argc, char **argv) {
