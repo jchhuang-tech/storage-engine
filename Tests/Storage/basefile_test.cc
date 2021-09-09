@@ -39,16 +39,14 @@ class BaseFileTests : public ::testing::Test {
 };
 
 // Creation test to check empty file parameters
-TEST_F(BaseFileTests, NewBaseFile) {
+TEST_F(BaseFileTests, NewBaseFileID) {
   NewBaseFile();
   ASSERT_TRUE(bfile);
 
   // File IDs start with 1
   ASSERT_EQ(bfile->GetId(), 1);
-}
 
-// The second creation test, file ID should be 2
-TEST_F(BaseFileTests, ID) {
+  // Another file, ID should be 2
   NewBaseFile();
   ASSERT_EQ(bfile->GetId(), 2);
 }
