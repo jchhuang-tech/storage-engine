@@ -47,8 +47,10 @@ TEST_F(BaseFileTests, NewBaseFileID) {
   ASSERT_EQ(bfile->GetId(), 1);
 
   // Another file, ID should be 2
-  NewBaseFile();
-  ASSERT_EQ(bfile->GetId(), 2);
+  yase::BaseFile *another_bfile = new yase::BaseFile(bfile_name.c_str());
+  ASSERT_TRUE(another_bfile);
+  ASSERT_EQ(another_bfile->GetId(), 2);
+  delete another_bfile;
 }
 
 // Page count should be 0
