@@ -38,4 +38,27 @@ struct PageId {
   inline bool operator()(const PageId &l, const PageId &r) const { return l.value < r.value; }
 };
 
+// Record ID - a 64-bit integer
+struct RID {
+  // Represents an invalid RID
+  static const uint64_t kInvalidValue = ~uint64_t{0};
+
+  // Structure of the RID:
+  // ---16 bits---|---24 bits---|---24 bits---|
+  //    File ID   |   Page Num  |   Slot Num  |
+  uint64_t value;
+
+  // Constructors
+  explicit RID(uint64_t value) : value(value) {}
+  explicit RID() : value(kInvalidValue) {}
+  explicit RID(PageId page_id, uint32_t slot_num) { value = page_id.value | slot_num; }
+
+  inline PageId GetPageId() { return PageId{value & (~(uint64_t) 0xffffffu)}; }
+  inline uint32_t GetSlotNum() { return (value << 40u) >> 40u; }
+  inline bool IsValid() { return value != kInvalidValue; }
+
+  static inline RID MakeRid(PageId page_id, uint32_t slot_num) {
+    return RID(page_id.value | slot_num);
+  }
+};
 }  // namespace yase
