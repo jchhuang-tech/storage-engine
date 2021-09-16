@@ -14,6 +14,7 @@
 #include <gtest/gtest.h>
 
 #include <Storage/basefile.h>
+#include <thread>
 
 class BaseFileTests : public ::testing::Test {
  protected:
@@ -131,15 +132,28 @@ TEST_F(BaseFileTests, SingleThreadAccess) {
 // Multi-threaded test of BaseFile
 TEST_F(BaseFileTests, MultiThreadAccess) {
   // Step 1: Create a base file
+  static const uint32_t kPages = 10;
+  NewBaseFile();
 
   // Step 2: Create 4 threads using std::thread; each thread should execute the
   // AccessFile function to write 10 pages to the created base file
+  std::thread t1(AccessFile, bfile, kPages);
+  std::thread t2(AccessFile, bfile, kPages);
+  std::thread t3(AccessFile, bfile, kPages);
+  std::thread t4(AccessFile, bfile, kPages);
 
   // Step 3: Wait for all threads to finish and recycle them if dynamic
   // allocation (e.g., malloc/new) is used
+  t1.join();
+  t2.join();
+  t3.join();
+  t4.join();
 
   // Step 4: Check raw file size: assert (using ASSERT_EQ) the file size to be
   // 10 * PAGE_SIZE * [number of threads] bytes.
+  struct stat s;
+  stat(bfile_name.c_str(), &s);
+  ASSERT_EQ(s.st_size, kPages * PAGE_SIZE * 4);
 }
 
 int main(int argc, char **argv) {
