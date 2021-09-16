@@ -9,6 +9,7 @@
  */
 #include <fcntl.h>
 #include "basefile.h"
+#include <cstring> // memcpy
 
 namespace yase {
 
@@ -82,6 +83,7 @@ PageId BaseFile::CreatePage() {
   PageId pid;
   pid = PageId(file_id, page_count.fetch_add(1, std::memory_order_relaxed));
   unsigned char buffer[PAGE_SIZE] = {0};
+  std::memcpy(buffer, &(pid.value), sizeof(pid.value));
   FlushPage(pid, buffer);
   return pid;
 }
