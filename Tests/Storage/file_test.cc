@@ -93,12 +93,11 @@ TEST_F(FileTests, AllocatePage) {
   ASSERT_EQ(file->GetDir()->GetPageCount(), 1);
 
   // Check page parameters
-  yase::Page *page = (yase::Page *)malloc(sizeof(yase::Page));
+  auto page_space = std::unique_ptr<char[]>(new char[sizeof(yase::Page)]);
+  yase::Page *page = (yase::Page *)page_space.get();
   LoadDataPage(pid, page);
   ASSERT_EQ(page->GetDataPage()->GetRecordCount(), 0);
   ASSERT_EQ(page->GetDataPage()->GetRecordSize(), kRecordSize);
-
-  free(page);
 }
 
 // Deallocate a non-existant data page
