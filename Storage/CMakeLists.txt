@@ -1,1 +1,6 @@
+add_library(buffermanager buffer_manager.cc)
 add_library(basefile basefile.cc)
+add_library(file basefile.cc file.cc page.cc)
+add_library(table table.cc)
+target_link_libraries(basefile buffermanager)
+target_link_libraries(table file)
