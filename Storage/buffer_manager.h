@@ -20,6 +20,8 @@
 #include "file.h"
 #include "page.h"
 
+#include <list>
+
 namespace yase {
 
 class BufferManager;
@@ -110,5 +112,8 @@ class BufferManager {
 
   // Mutex protecting the buffer pool
   std::mutex latch;
+
+  // LRU queue implemented using the std::list structure
+  std::list<Page*> lru_queue;
 };
 }  // namespace yase
