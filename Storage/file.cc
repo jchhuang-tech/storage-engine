@@ -13,13 +13,17 @@
 
 namespace yase {
 
-File::File(std::string name, uint16_t record_size) {
+File::File(std::string name, uint16_t record_size) : BaseFile(name), dir(name + ".dir") {
   // 1. Initialize the structure as needed; in particular the directory
   //    BaseFile should be named as "name.dir"
   // 2. Use BufferManager::RegisterFile to register this file's both 
   //    BaseFiles with the buffer manager.
   //
   // TODO: Your implementation
+  this->record_size = record_size;
+  BufferManager* bm = BufferManager::Get();
+  bm->RegisterFile(this);
+  bm->RegisterFile(&dir);
 }
 
 File::~File() {
@@ -72,6 +76,14 @@ PageId File::AllocatePage() {
   //    instance. See BufferManager class definition in buffermanager.h for details.
   //
   // TODO: Your implementation
+  PageId pid = ScavengePage();
+  if (pid.IsValid()) {
+    return pid;
+  }
+
+  // dir
+  // DataPage data_page = DataPage(record_size);
+
 
   return PageId();
 }
@@ -88,6 +100,7 @@ bool File::DeallocatePage(PageId data_pid) {
 bool File::PageExists(PageId pid) {
   // Pin the directory page corresponding to the specifid page (pid) and check whether 
   // the page is in the "allocated" state.
+  // uint32_t page_num = pid.GetPageNum();
   return false;
 }
 
@@ -105,6 +118,22 @@ PageId File::ScavengePage() {
   //       properly pin/unpin/latch/unlatch it.
   //
   // TODO: Your implementation
+  BufferManager* bm = BufferManager::Get();
+  for (unsigned int i=0; i<dir.GetPageCount(); i++) {
+    PageId dir_pid = PageId(dir.GetId(), i);
+    Page* dir_page = bm->PinPage(dir_pid);
+    DirectoryPage* dir_page_data = dir_page->GetDirPage();
+    for (long unsigned int j=0; j<sizeof(dir_page_data->entries); j++)
+      if (dir_page_data->entries[j].created && !dir_page_data->entries[j].allocated) {
+        PageId data_pid = PageId(this->GetId(), i);
+        dir_page_data->entries[j].allocated = true;
+        dir_page_data->entries[j].free_slots = DataPage::GetCapacity(record_size);
+        // TODO: unpin dir_page
+        // TODO: add latch/unlatch
+        return data_pid;
+      }
+  }
+
   return PageId();
 }
 
