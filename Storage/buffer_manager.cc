@@ -82,7 +82,7 @@ Page* BufferManager::PinPage(PageId page_id) {
 
   } else {
     // if the buffer pool is full, evict a page
-    Page* pinned_page;
+    Page* page_buffer;
     if (page_map.size() >= page_count) {
       Page* evicted_page = lru_queue.front();
       lru_queue.pop_front();
@@ -95,23 +95,23 @@ Page* BufferManager::PinPage(PageId page_id) {
         }
       }
       page_map.erase(evicted_page_id);
-      pinned_page = evicted_page;
+      page_buffer = evicted_page; // we are going to load the new page in here
     } else {
-      pinned_page = lru_queue.front();
+      page_buffer = lru_queue.front();
       lru_queue.pop_front();
     }
 
     uint16_t bf_id = page_id.GetFileID();
     BaseFile* bf = file_map[bf_id];
-    ret = bf->LoadPage(page_id, pinned_page);
+    ret = bf->LoadPage(page_id, page_buffer);
     if (!ret){
       return nullptr;
     }
-    page_map[page_id] = pinned_page;
-    pinned_page->pin_count = 1;
-    pinned_page->page_id = page_id;
+    page_map[page_id] = page_buffer;
+    page_buffer->pin_count = 1;
+    page_buffer->page_id = page_id;
     
-    return pinned_page;
+    return page_buffer;
   }
 
   // The following return statement tries to silent compiler warning so the base
