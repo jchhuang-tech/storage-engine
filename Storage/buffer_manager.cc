@@ -63,7 +63,7 @@ Page* BufferManager::PinPage(PageId page_id) {
   //
   // 3. Errors such as invalid page IDs should be handled. If there is any error
   //    at any step, return nullptr.
-
+  bool ret = false;
   if (!page_id.IsValid()){
     return nullptr;
   }
@@ -87,14 +87,22 @@ Page* BufferManager::PinPage(PageId page_id) {
       lru_queue.pop_front();
       PageId evicted_page_id = evicted_page->GetPageId();
       uint16_t evicted_bf_id = evicted_page_id.GetFileID();
-      file_map[evicted_bf_id]->FlushPage(evicted_page_id, evicted_page);
+      if (evicted_page->IsDirty()){
+        ret = file_map[evicted_bf_id]->FlushPage(evicted_page_id, evicted_page);
+        if (!ret){
+          return nullptr;
+        }
+      }
       page_map.erase(evicted_page_id);
     }
 
     uint16_t bf_id = page_id.GetFileID();
     BaseFile* bf = file_map[bf_id];
     Page* pinned_page = (Page*)malloc(sizeof(Page));
-    bf->LoadPage(page_id, pinned_page);
+    ret = bf->LoadPage(page_id, pinned_page);
+    if (!ret){
+      return nullptr;
+    }
     page_map[page_id] = pinned_page;
     pinned_page->pin_count = 1;
     pinned_page->page_id = page_id;
