@@ -82,6 +82,7 @@ Page* BufferManager::PinPage(PageId page_id) {
 
   } else {
     // if the buffer pool is full, evict a page
+    Page* pinned_page;
     if (page_map.size() >= page_count) {
       Page* evicted_page = lru_queue.front();
       lru_queue.pop_front();
@@ -94,11 +95,14 @@ Page* BufferManager::PinPage(PageId page_id) {
         }
       }
       page_map.erase(evicted_page_id);
+      pinned_page = evicted_page;
+    } else {
+      pinned_page = lru_queue.front();
+      lru_queue.pop_front();
     }
 
     uint16_t bf_id = page_id.GetFileID();
     BaseFile* bf = file_map[bf_id];
-    Page* pinned_page = (Page*)malloc(sizeof(Page));
     ret = bf->LoadPage(page_id, pinned_page);
     if (!ret){
       return nullptr;
