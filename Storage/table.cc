@@ -61,10 +61,10 @@ retry:
   uint32_t dir_page_num = (next_free_pid.GetPageNum() / entries_per_dir_page);
   PageId dir_pid(file.GetDir()->GetId(), dir_page_num);
   p = bm->PinPage(dir_pid);
-  p->latch.lock();
   if (!p) {
     return RID();
   }
+  p->latch.lock();
   DirectoryPage *dirp = p->GetDirPage();
   // p->latch.unlock();
 
@@ -87,10 +87,10 @@ bool Table::Read(RID rid, void *out_buf) {
 
   // Pin the requested page
   Page *p = bm->PinPage(rid.GetPageId());
-  p->latch.lock();
   if (!p) {
     return false;
   }
+  p->latch.lock();
 
   DataPage *dp = p->GetDataPage();
   bool success = dp->Read(rid, out_buf);
@@ -106,10 +106,10 @@ bool Table::Delete(RID rid) {
 
   auto *bm = BufferManager::Get();
   Page *p = bm->PinPage(rid.GetPageId());
-  p->latch.lock();
   if (!p) {
     return false;
   }
+  p->latch.lock();
 
   DataPage *dp = p->GetDataPage();
   bool success = dp->Delete(rid);
@@ -125,10 +125,10 @@ bool Table::Delete(RID rid) {
     uint32_t dir_page_num = rid.GetPageId().GetPageNum() / entries_per_dir_page;
     PageId dir_pid(file.GetDir()->GetId(), dir_page_num);
     p = bm->PinPage(dir_pid);
-    p->latch.lock();
     if (!p) {
       return false;
     }
+    p->latch.lock();
     DirectoryPage *dirp = p->GetDirPage();
 
     uint32_t idx = rid.GetPageId().GetPageNum() % entries_per_dir_page;
@@ -147,11 +147,11 @@ bool Table::Update(RID rid, const char *record) {
   }
   auto *bm = BufferManager::Get();
   Page *p = bm->PinPage(rid.GetPageId());
-  p->latch.lock();
 
   if (!p) {
     return false;
   }
+  p->latch.lock();
 
   DataPage *dp = p->GetDataPage();
   bool success = dp->Update(rid, record);
