@@ -83,6 +83,9 @@ Page* BufferManager::PinPage(PageId page_id) {
   if (page_map.count(page_id)){ // if page_id is in page_map (the buffer pool)
     Page* pinned_page = page_map[page_id];
     latch.unlock();
+    if (!pinned_page) {
+      return nullptr;
+    }
     pinned_page->latch.lock();
     pinned_page->IncPinCount();
     // pinned_page->latch.unlock();
@@ -112,8 +115,15 @@ Page* BufferManager::PinPage(PageId page_id) {
       Page* evicted_page = lru_queue.front();
       lru_queue.pop_front();
       latch.unlock();
+      if (!evicted_page) {
+        return nullptr;
+      }
       evicted_page->latch.lock();
       PageId evicted_page_id = evicted_page->GetPageId();
+      if (!evicted_page_id.IsValid()){
+        evicted_page->latch.unlock();
+        return nullptr;
+      }
       // evicted_page->latch.unlock();
       uint16_t evicted_bf_id = evicted_page_id.GetFileID();
       // evicted_page->latch.lock();
@@ -132,6 +142,9 @@ Page* BufferManager::PinPage(PageId page_id) {
       page_map.erase(evicted_page_id);
       latch.unlock();
       page_buffer = evicted_page; // we are going to load the new page in here
+      if (!page_buffer) {
+        return nullptr;
+      }
     } else {
       if (lru_queue.empty()) {
         latch.unlock();
@@ -140,6 +153,9 @@ Page* BufferManager::PinPage(PageId page_id) {
       page_buffer = lru_queue.front();
       lru_queue.pop_front();
       latch.unlock();
+      if (!page_buffer) {
+        return nullptr;
+      }
     }
 
     uint16_t bf_id = page_id.GetFileID();
