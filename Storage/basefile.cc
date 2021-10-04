@@ -46,36 +46,37 @@ BaseFile::~BaseFile() {
 
 bool BaseFile::FlushPage(PageId pid, void *page) {
   // TODO: Your implementation
-  if(pid.IsValid()){
-    off_t offset = pid.GetPageNum() * PAGE_SIZE;
-    int ret = pwrite(fd, page, PAGE_SIZE, offset);
-    if (ret < 0) {
-      return false;
-    }
-    ret = fsync(fd);
-    if (ret < 0) {
-      return false;
-    }
-    return true;
-  }
-  else{
+  if(!pid.IsValid()){
     return false;
   }
+  off_t offset = pid.GetPageNum() * PAGE_SIZE;
+  int ret = pwrite(fd, page, PAGE_SIZE, offset);
+  if (ret < 0) {
+    return false;
+  }
+  ret = fsync(fd);
+  if (ret < 0) {
+    return false;
+  }
+  return true;
 }
 
 bool BaseFile::LoadPage(PageId pid, void *out_buf) {
   // TODO: Your implementation
-  if(pid.IsValid() && page_count > 0){
-    off_t offset = pid.GetPageNum() * PAGE_SIZE;
-    int ret = pread(fd, out_buf, PAGE_SIZE, offset);
-    if (ret < 0) {
-      return false;
-    }
-    return true;
-  }
-  else{
+  LOG(ERROR) << "LoadPage 1";
+  if (!pid.IsValid()){
     return false;
   }
+  LOG(ERROR) << "LoadPage 2";
+  off_t offset = pid.GetPageNum() * PAGE_SIZE;
+  LOG(ERROR) << "LoadPage 3";
+  int ret = pread(fd, out_buf, PAGE_SIZE, offset);
+  LOG(ERROR) << "LoadPage 4";
+  if (ret != PAGE_SIZE) {
+    return false;
+  }
+  LOG(ERROR) << "LoadPage 5";
+  return true;
 }
 
 PageId BaseFile::CreatePage() {
