@@ -132,6 +132,9 @@ Page* BufferManager::PinPage(PageId page_id) {
       latch.unlock();
       page_buffer = evicted_page; // we are going to load the new page in here
     } else {
+      if (lru_queue.empty()) {
+        return nullptr;
+      }
       page_buffer = lru_queue.front();
       lru_queue.pop_front();
       latch.unlock();
