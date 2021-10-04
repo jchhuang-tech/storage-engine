@@ -105,6 +105,9 @@ Page* BufferManager::PinPage(PageId page_id) {
     Page* page_buffer;
     // latch.lock();
     if (page_map.size() >= page_count) {
+      if (lru_queue.empty()) {
+        return nullptr;
+      }
       Page* evicted_page = lru_queue.front();
       lru_queue.pop_front();
       latch.unlock();
