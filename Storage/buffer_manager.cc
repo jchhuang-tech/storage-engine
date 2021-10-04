@@ -106,6 +106,7 @@ Page* BufferManager::PinPage(PageId page_id) {
     // latch.lock();
     if (page_map.size() >= page_count) {
       if (lru_queue.empty()) {
+        latch.unlock();
         return nullptr;
       }
       Page* evicted_page = lru_queue.front();
@@ -133,6 +134,7 @@ Page* BufferManager::PinPage(PageId page_id) {
       page_buffer = evicted_page; // we are going to load the new page in here
     } else {
       if (lru_queue.empty()) {
+        latch.unlock();
         return nullptr;
       }
       page_buffer = lru_queue.front();
@@ -146,11 +148,11 @@ Page* BufferManager::PinPage(PageId page_id) {
     latch.unlock();
     page_buffer->latch.lock();
     ret = bf->LoadPage(page_id, page_buffer);
-    // page_buffer->latch.unlock();
+    page_buffer->latch.unlock();
     if (!ret){
       return nullptr;
     }
-    // page_buffer->latch.lock();
+    page_buffer->latch.lock();
     latch.lock();
     page_map[page_id] = page_buffer;
     latch.unlock();
@@ -172,12 +174,15 @@ void BufferManager::UnpinPage(Page *page) {
   // 2. The page should be added to the LRU queue when its pin count becomes 0.
   //
   // Note: you may assume page is non-null.
+  page->latch.lock();
   page->DecPinCount();
   if (page->pin_count == 0){
+    page->latch.unlock();
     latch.lock();
     lru_queue.push_back(page);  
     latch.unlock();
   }
+  page->latch.unlock();
 }
 
 void BufferManager::RegisterFile(BaseFile *bf) {
