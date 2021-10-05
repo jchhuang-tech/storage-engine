@@ -78,17 +78,17 @@ Page* BufferManager::PinPage(PageId page_id) {
   if (!page_id.IsValid()){
     return nullptr;
   }
-  LOG(ERROR) << "PinPage 1";
+  // LOG(ERROR) << "PinPage 1";
 
   latch.lock();
   if (page_map.count(page_id)){ // if page_id is in page_map (the buffer pool)
     Page* pinned_page = page_map[page_id];
-    LOG(ERROR) << "PinPage 2";
+    // LOG(ERROR) << "PinPage 2";
     latch.unlock();
     if (!pinned_page) {
       return nullptr;
     }
-    LOG(ERROR) << "PinPage 3";
+    // LOG(ERROR) << "PinPage 3";
     pinned_page->latch.lock();
     pinned_page->IncPinCount();
     // pinned_page->latch.unlock();
@@ -96,54 +96,53 @@ Page* BufferManager::PinPage(PageId page_id) {
     // if the page is in the LRU queue, remove it from the queue
     latch.lock();
     // pinned_page->latch.lock();
-    LOG(ERROR) << "PinPage 4";
+    // LOG(ERROR) << "PinPage 4";
     std::list<Page*>::iterator page_it = std::find(lru_queue.begin(), lru_queue.end(), pinned_page);
     pinned_page->latch.unlock();
-    LOG(ERROR) << "PinPage 5";
+    // LOG(ERROR) << "PinPage 5";
     if (page_it != lru_queue.end()){
       lru_queue.erase(page_it);
     }
-    LOG(ERROR) << "PinPage 6";
+    // LOG(ERROR) << "PinPage 6";
     latch.unlock();
 
     return pinned_page;
 
-  } else {
+  } else { // if page_id is not in page_map (the buffer pool)
     // latch.unlock();
-    // if the buffer pool is full, evict a page
     Page* page_buffer;
     // latch.lock();
-    LOG(ERROR) << "PinPage 7";
-    if (page_map.size() >= page_count) {
-      LOG(ERROR) << "PinPage 8";
+    // LOG(ERROR) << "PinPage 7";
+    if (page_map.size() >= page_count) { // if the buffer pool is full, evict a page, and load the new page into that page frame
+      // LOG(ERROR) << "PinPage 8";
       if (lru_queue.empty()) {
         latch.unlock();
         return nullptr;
       }
-      LOG(ERROR) << "PinPage 9";
+      // LOG(ERROR) << "PinPage 9";
       Page* evicted_page = lru_queue.front();
-      LOG(ERROR) << "PinPage 10";
+      // LOG(ERROR) << "PinPage 10";
       lru_queue.pop_front();
       latch.unlock();
       if (!evicted_page) {
         return nullptr;
       }
-      LOG(ERROR) << "PinPage 11";
+      // LOG(ERROR) << "PinPage 11";
       evicted_page->latch.lock();
       PageId evicted_page_id = evicted_page->GetPageId();
-      LOG(ERROR) << "PinPage 12";
+      // LOG(ERROR) << "PinPage 12";
       if (!evicted_page_id.IsValid()){
         evicted_page->latch.unlock();
         return nullptr;
       }
       // evicted_page->latch.unlock();
-      LOG(ERROR) << "PinPage 13";
+      // LOG(ERROR) << "PinPage 13";
       uint16_t evicted_bf_id = evicted_page_id.GetFileID();
       // evicted_page->latch.lock();
-      LOG(ERROR) << "PinPage 14";
+      // LOG(ERROR) << "PinPage 14";
       if (evicted_page->IsDirty()){
         latch.lock();
-        LOG(ERROR) << "PinPage 15";
+        // LOG(ERROR) << "PinPage 15";
         ret = file_map[evicted_bf_id]->FlushPage(evicted_page_id, evicted_page);
         latch.unlock();
         evicted_page->latch.unlock();
@@ -154,41 +153,44 @@ Page* BufferManager::PinPage(PageId page_id) {
         evicted_page->latch.unlock();
       }
       latch.lock();
-      LOG(ERROR) << "PinPage 16";
+      // LOG(ERROR) << "PinPage 16";
       page_map.erase(evicted_page_id);
       latch.unlock();
-      LOG(ERROR) << "PinPage 17";
+      // LOG(ERROR) << "PinPage 17";
       page_buffer = evicted_page; // we are going to load the new page in here
       if (!page_buffer) {
         return nullptr;
       }
-    } else {
-      LOG(ERROR) << "PinPage 18";
+    } else { // if the buffer pool is not full, find an empty page frame in it, and load the new page into that page
+      // LOG(ERROR) << "PinPage 18";
       if (lru_queue.empty()) {
         latch.unlock();
         return nullptr;
       }
-      LOG(ERROR) << "PinPage 19";
+      // LOG(ERROR) << "PinPage 19";
       page_buffer = lru_queue.front();
-      LOG(ERROR) << "PinPage 20";
+      // LOG(ERROR) << "PinPage 20";
       lru_queue.pop_front();
-      LOG(ERROR) << "PinPage 21";
+      // LOG(ERROR) << "PinPage 21";
       latch.unlock();
       if (!page_buffer) {
         return nullptr;
       }
     }
 
-    LOG(ERROR) << "PinPage 22";
+    // LOG(ERROR) << "PinPage 22";
     uint16_t bf_id = page_id.GetFileID();
     latch.lock();
-    LOG(ERROR) << "PinPage 23";
+    // LOG(ERROR) << "PinPage 23";
     BaseFile* bf = file_map[bf_id];
-    LOG(ERROR) << "PinPage 24";
+    if (!bf){
+      return nullptr;
+    }
+    // LOG(ERROR) << "PinPage 24";
     latch.unlock();
     page_buffer->latch.lock();
     ret = bf->LoadPage(page_id, page_buffer);
-    LOG(ERROR) << "PinPage 25";
+    // LOG(ERROR) << "PinPage 25";
     page_buffer->latch.unlock();
     if (!ret){
       return nullptr;
@@ -196,12 +198,12 @@ Page* BufferManager::PinPage(PageId page_id) {
     page_buffer->latch.lock();
     latch.lock();
     page_map[page_id] = page_buffer;
-    LOG(ERROR) << "PinPage 26";
+    // LOG(ERROR) << "PinPage 26";
     latch.unlock();
     page_buffer->pin_count = 1;
     page_buffer->page_id = page_id;
     page_buffer->latch.unlock();
-    LOG(ERROR) << "PinPage 27";
+    // LOG(ERROR) << "PinPage 27";
     
     return page_buffer;
   }
