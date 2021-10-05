@@ -184,6 +184,7 @@ Page* BufferManager::PinPage(PageId page_id) {
     // LOG(ERROR) << "PinPage 23";
     BaseFile* bf = file_map[bf_id];
     if (!bf){
+      latch.unlock();
       return nullptr;
     }
     // LOG(ERROR) << "PinPage 24";
