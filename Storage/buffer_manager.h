@@ -115,5 +115,8 @@ class BufferManager {
 
   // LRU queue implemented using the std::list structure
   std::list<Page*> lru_queue;
+
+  // evict a page (LRU head) from the buffer pool
+  Page* EvictPage();
 };
 }  // namespace yase
