@@ -14,7 +14,7 @@ endif(NOT CMAKE_BUILD_TYPE)
 enable_testing()
 
 set(CMAKE_CXX_STANDARD 11)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Werror -lpthread -DPAGE_SIZE=4096")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Werror -lpthread -DPAGE_SIZE=4096 -pthread")
 
 include_directories(${CMAKE_SOURCE_DIR})
 
