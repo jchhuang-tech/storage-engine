@@ -116,6 +116,9 @@ Page* BufferManager::PinPage(PageId page_id) {
     if (page_map.size() >= page_count) { // if the buffer pool is full, evict a page, and load the new page into that page frame
       // LOG(ERROR) << "PinPage 8";
       page_buffer = EvictPage();
+      if (!page_buffer){
+        return nullptr;
+      }
     } else { // if the buffer pool is not full, find an empty page frame in it, and load the new page into that page
       // LOG(ERROR) << "PinPage 18";
       if (lru_queue.empty()) {
