@@ -63,19 +63,19 @@ bool BaseFile::FlushPage(PageId pid, void *page) {
 
 bool BaseFile::LoadPage(PageId pid, void *out_buf) {
   // TODO: Your implementation
-  LOG(ERROR) << "LoadPage 1 " << strerror(errno);
+  // LOG(ERROR) << "LoadPage 1 " << strerror(errno);
   if (!pid.IsValid()){
     return false;
   }
-  LOG(ERROR) << "LoadPage 2 " << strerror(errno);
+  // LOG(ERROR) << "LoadPage 2 " << strerror(errno);
   off_t offset = pid.GetPageNum() * PAGE_SIZE;
-  LOG(ERROR) << "LoadPage 3 " << strerror(errno);
+  // LOG(ERROR) << "LoadPage 3 " << strerror(errno);
   ssize_t ret = pread(fd, out_buf, PAGE_SIZE, offset);
-  LOG(ERROR) << "LoadPage 4 " << strerror(errno);
+  // LOG(ERROR) << "LoadPage 4 " << strerror(errno);
   if (ret != PAGE_SIZE) {
     return false;
   }
-  LOG(ERROR) << "LoadPage 5 " << strerror(errno);
+  // LOG(ERROR) << "LoadPage 5 " << strerror(errno);
   return true;
 }
 
