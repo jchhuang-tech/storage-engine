@@ -28,6 +28,7 @@ BufferManager::BufferManager(uint32_t page_count) {
   // memset(page_frames, 0, page_count * sizeof(Page));
   // page_frames = new Page();
   for (unsigned int i=0; i<page_count; i++){
+    // new (page_frames + i) Page();
     Page* initialized_page = new (page_frames + i) Page();
     lru_queue.push_back(initialized_page);
   }
@@ -47,7 +48,8 @@ BufferManager::~BufferManager() {
       page->latch.unlock();
       uint16_t bf_id = page_id.GetFileID();
       page->latch.lock();
-      file_map[bf_id]->FlushPage(page_id, page);
+      file_map[bf_id]->FlushPage(page_id, page->page_data);
+      page->SetDirty(false);
       page->latch.unlock();
     } else {
       page->latch.unlock();
@@ -110,7 +112,7 @@ Page* BufferManager::PinPage(PageId page_id) {
 
   } else { // if page_id is not in page_map (the buffer pool)
     // latch.unlock();
-    Page* page_buffer;
+    Page* page_buffer = nullptr;
     // latch.lock();
     // LOG(ERROR) << "PinPage 7";
     if (page_map.size() >= page_count) { // if the buffer pool is full, evict a page, and load the new page into that page frame
@@ -121,6 +123,15 @@ Page* BufferManager::PinPage(PageId page_id) {
       }
     } else { // if the buffer pool is not full, find an empty page frame in it, and load the new page into that page
       // LOG(ERROR) << "PinPage 18";
+      // for (unsigned int i=0; i<page_count; i++){
+      //   if (page_frames[i].GetPinCount() == 0){
+      //     page_buffer = page_frames + i;
+      //     std::list<Page*>::iterator page_it = std::find(lru_queue.begin(), lru_queue.end(), page_buffer);
+      //     if (page_it != lru_queue.end()){
+      //       lru_queue.erase(page_it);
+      //     }
+      //   }
+      // }
       if (lru_queue.empty()) {
         latch.unlock();
         return nullptr;
@@ -148,7 +159,7 @@ Page* BufferManager::PinPage(PageId page_id) {
     // LOG(ERROR) << "PinPage 24";
     latch.unlock();
     page_buffer->latch.lock();
-    ret = bf->LoadPage(page_id, page_buffer);
+    ret = bf->LoadPage(page_id, page_buffer->page_data);
     // LOG(ERROR) << "PinPage 25";
     page_buffer->latch.unlock();
     if (!ret){
@@ -226,7 +237,8 @@ Page* BufferManager::EvictPage() {
   if (evicted_page->IsDirty()){
     latch.lock();
     // LOG(ERROR) << "EvictPage 7";
-    ret = file_map[evicted_bf_id]->FlushPage(evicted_page_id, evicted_page);
+    ret = file_map[evicted_bf_id]->FlushPage(evicted_page_id, evicted_page->page_data);
+    evicted_page->SetDirty(false);
     latch.unlock();
     evicted_page->latch.unlock();
     if (!ret){
