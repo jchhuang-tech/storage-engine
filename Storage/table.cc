@@ -25,6 +25,9 @@ RID Table::Insert(const char *record) {
 retry:
   PageId pid = next_free_pid;
   Page *p = bm->PinPage(pid);
+  if (!p){
+    return RID();
+  }
   p->latch.lock();
   DataPage *dp = p->GetDataPage();
   // p->latch.unlock();
@@ -40,15 +43,17 @@ retry:
       goto retry;
     }
     // latch.unlock();
-    p->latch.unlock();
-    bm->UnpinPage(p);
     next_free_pid = file.AllocatePage();
     if (!next_free_pid.IsValid()) {
       // Probably no space - return invalid RID
       latch.unlock();
+      p->latch.unlock();
+      bm->UnpinPage(p);
       return RID();
     }
     latch.unlock();
+    p->latch.unlock();
+    bm->UnpinPage(p);
     goto retry;
   }
 
