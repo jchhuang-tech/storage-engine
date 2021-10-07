@@ -26,13 +26,6 @@ File::File(std::string name, uint16_t record_size) : BaseFile(name), dir(name + 
   BufferManager* bm = BufferManager::Get();
   bm->RegisterFile(this);
   bm->RegisterFile(&dir);
-
-  // for (uint32_t i = 0; i < sizeof(BaseFile) / PAGE_SIZE; i++){
-  //   DirectoryPage::Entry entry;
-  //   int written = write(fd, &entry, sizeof(entry));
-  //   LOG_IF(FATAL, written != sizeof(DirectoryPage::Entry));
-  // }
-
 }
 
 File::~File() {
@@ -87,43 +80,52 @@ PageId File::AllocatePage() {
   // TODO: Your implementation
   PageId pid = ScavengePage();
   if (pid.IsValid()) { // if there is a entry in the dir page that is created but not allocated
+    // LOG(INFO) << pid.GetFileID() << " FILE ID";
+    // LOG(INFO) << pid.GetPageNum() << " Page Num";
     return pid;
   }
 
   BufferManager* bm = BufferManager::Get();
+  if (!bm){
+    return PageId();
+  }
 
   // create data page first, and use the data page num 
   // to get the dir page num and see if it's larger than the
   // number of dir pages created, if so, create new dir page
   PageId data_pid = CreatePage();
-  // LOG(ERROR) << "AllocatePage 1";
-  Page* data_page = bm->PinPage(data_pid);
-  if (!data_page){
-    LOG(FATAL) << "AllocatePage 102";
+  if (!data_pid.IsValid()){
     return PageId();
   }
-  // LOG(ERROR) << "AllocatePage 2";
+  // LOG(INFO) << "AllocatePage 1";
+  Page* data_page = bm->PinPage(data_pid);
+  if (!data_page){
+    // LOG(INFO) << "AllocatePage 102";
+    bm->UnpinPage(data_page);
+    return PageId();
+  }
+  // LOG(INFO) << "AllocatePage 2";
   data_page->latch.lock();
   // DataPage new_data_page_datap = DataPage(record_size);
-  // LOG(ERROR) << "AllocatePage 3";
+  // LOG(INFO) << "AllocatePage 3";
   // memcpy(data_page->page_data, &new_data_page_datap, sizeof(DataPage));
   new (data_page->page_data) DataPage(record_size);
-  // LOG(ERROR) << "AllocatePage 4";
+  // LOG(INFO) << "AllocatePage 4";
   data_page->SetDirty(true);
   data_page->latch.unlock();
-  // LOG(ERROR) << "AllocatePage 5";
+  // LOG(INFO) << "AllocatePage 5";
   bm->UnpinPage(data_page);
-  // LOG(ERROR) << "AllocatePage 6";
+  // LOG(INFO) << "AllocatePage 6";
   uint32_t data_page_num = data_pid.GetPageNum();
 
-  // LOG(ERROR) << "AllocatePage 7";
+  // LOG(INFO) << "AllocatePage 7";
   int entries_per_dir_page = PAGE_SIZE / sizeof(struct DirectoryPage::Entry);
   uint32_t dir_page_num = data_page_num / entries_per_dir_page;
   int entry_num = data_page_num % entries_per_dir_page;
 
-  // LOG(ERROR) << "AllocatePage 8";
+  // LOG(INFO) << "AllocatePage 8";
   if (dir_page_num >= dir.GetPageCount()) {
-    // LOG(ERROR) << "AllocatePage 9";
+    // LOG(INFO) << "AllocatePage 9";
     dir.CreatePage();
     // PageId new_dir_pid = dir.CreatePage();
     // Page* new_dir_page = bm->PinPage(new_dir_pid);
@@ -131,34 +133,37 @@ PageId File::AllocatePage() {
     // bm->UnpinPage(new_dir_page);
   }
 
-  // LOG(ERROR) << "AllocatePage 10";
+  // LOG(INFO) << "AllocatePage 10";
   PageId dir_pid = PageId(dir.GetId(), dir_page_num);
-  // LOG(ERROR) << "AllocatePage 11";
+  // LOG(INFO) << "AllocatePage 11";
   Page* dir_page = bm->PinPage(dir_pid);
   if (!dir_page){
-    LOG(FATAL) << "AllocatePage 139";
+    bm->UnpinPage(dir_page);
+    // LOG(INFO) << "AllocatePage 139";
     return PageId();
   }
-  // LOG(ERROR) << "AllocatePage 12";
+  // LOG(INFO) << "AllocatePage 12";
   dir_page->latch.lock();
   DirectoryPage* dir_page_dirp = dir_page->GetDirPage();
   if (!dir_page_dirp){
-    LOG(FATAL) << "AllocatePage 146";
+    dir_page->latch.unlock();
+    bm->UnpinPage(dir_page);
+    // LOG(INFO) << "AllocatePage 146";
     return PageId();
   }
 
-  // LOG(ERROR) << "AllocatePage 13";
+  // LOG(INFO) << "AllocatePage 13";
   dir_page_dirp->entries[entry_num].created = true;
-  // LOG(ERROR) << "AllocatePage 14";
+  // LOG(INFO) << "AllocatePage 14";
   dir_page->SetDirty(true);
-  // LOG(ERROR) << "AllocatePage 15";
+  // LOG(INFO) << "AllocatePage 15";
   dir_page_dirp->entries[entry_num].allocated = true;
-  // LOG(ERROR) << "AllocatePage 16";
+  // LOG(INFO) << "AllocatePage 16";
   dir_page_dirp->entries[entry_num].free_slots = DataPage::GetCapacity(record_size);
   dir_page->latch.unlock();
-  // LOG(ERROR) << "AllocatePage 17";
+  // LOG(INFO) << "AllocatePage 17";
   bm->UnpinPage(dir_page);
-  // LOG(ERROR) << "AllocatePage 18";
+  // LOG(INFO) << "AllocatePage 18";
 
   return data_pid;
   // return PageId();
@@ -183,16 +188,22 @@ bool File::DeallocatePage(PageId data_pid) {
   int entry_num = data_page_num % entries_per_dir_page;
 
   BufferManager* bm = BufferManager::Get();
+  if (!bm){
+    return false;
+  }
   PageId dir_pid = PageId(dir.GetId(), dir_page_num);
   Page* dir_page = bm->PinPage(dir_pid);
   if (!dir_page){
-    LOG(FATAL) << "DeallocatePage 189";
+    bm->UnpinPage(dir_page);
+    // LOG(INFO) << "DeallocatePage 189";
     return false;
   }
   dir_page->latch.lock();
   DirectoryPage* dir_page_dirp = dir_page->GetDirPage();
   if (!dir_page_dirp){
-    LOG(FATAL) << "DeallocatePage 195";
+    dir_page->latch.unlock();
+    bm->UnpinPage(dir_page);
+    // LOG(INFO) << "DeallocatePage 195";
     return false;
   }
 
@@ -215,6 +226,9 @@ bool File::PageExists(PageId pid) {
   // the page is in the "allocated" state.
 
   BufferManager* bm = BufferManager::Get();
+  if (!bm){
+    return false;
+  }
   uint32_t data_page_num = pid.GetPageNum();
   int entries_per_dir_page = PAGE_SIZE / sizeof(struct DirectoryPage::Entry);
   uint32_t dir_page_num = data_page_num / entries_per_dir_page;
@@ -222,13 +236,15 @@ bool File::PageExists(PageId pid) {
   PageId dir_pid = PageId(dir.GetId(), dir_page_num);
   Page* dir_page = bm->PinPage(dir_pid);
   if (!dir_page){
-    LOG(FATAL) << "PageExists 225";
+    // LOG(INFO) << "PageExists 225";
     return false;
   }
   dir_page->latch.lock();
   DirectoryPage* dir_page_dirp = dir_page->GetDirPage();
   if (!dir_page_dirp){
-    LOG(FATAL) << "PageExists 231";
+    // LOG(INFO) << "PageExists 231";
+    dir_page->latch.unlock();
+    bm->UnpinPage(dir_page);
     return false;
   }
 
@@ -258,17 +274,23 @@ PageId File::ScavengePage() {
   //
   // TODO: Your implementation
   BufferManager* bm = BufferManager::Get();
+  if (!bm){
+    return PageId();
+  }
   for (unsigned int i=0; i<dir.GetPageCount(); i++) {
     PageId dir_pid = PageId(dir.GetId(), i);
     Page* dir_page = bm->PinPage(dir_pid);
     if (!dir_page){
-      LOG(FATAL) << "ScavengePage 265";
+      // LOG(INFO) << "ScavengePage 265";
+      bm->UnpinPage(dir_page);
       return PageId();
     }
     dir_page->latch.lock();
     DirectoryPage* dir_page_dirp = dir_page->GetDirPage();
     if (!dir_page_dirp){
-      LOG(FATAL) << "ScavengePage 271";
+      dir_page->latch.unlock();
+      bm->UnpinPage(dir_page);
+      // LOG(INFO) << "ScavengePage 271";
       return PageId();
     }
     int entries_per_dir_page = PAGE_SIZE / sizeof(struct DirectoryPage::Entry);

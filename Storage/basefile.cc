@@ -63,26 +63,22 @@ bool BaseFile::FlushPage(PageId pid, void *page) {
 
 bool BaseFile::LoadPage(PageId pid, void *out_buf) {
   // TODO: Your implementation
-  // LOG(ERROR) << "LoadPage 1 " << strerror(errno);
   if (!pid.IsValid()){
     return false;
   }
-  // LOG(ERROR) << "LoadPage 2 " << strerror(errno);
   off_t offset = pid.GetPageNum() * PAGE_SIZE;
-  // LOG(ERROR) << "LoadPage 3 " << strerror(errno);
   ssize_t ret = pread(fd, out_buf, PAGE_SIZE, offset);
-  // LOG(ERROR) << "LoadPage 4 " << strerror(errno);
   if (ret != PAGE_SIZE) {
     return false;
   }
-  // LOG(ERROR) << "LoadPage 5 " << strerror(errno);
   return true;
 }
 
 PageId BaseFile::CreatePage() {
   // TODO: Your implementation
   PageId pid;
-  pid = PageId(file_id, page_count.fetch_add(1, std::memory_order_relaxed));
+  pid = PageId(file_id, page_count.fetch_add(1));
+  // pid = PageId(file_id, page_count.fetch_add(1, std::memory_order_relaxed));
   unsigned char buffer[PAGE_SIZE] = {0};
   std::memcpy(buffer, &(pid.value), sizeof(pid.value));
   if (!FlushPage(pid, buffer)){
