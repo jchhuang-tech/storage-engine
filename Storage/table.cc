@@ -30,6 +30,9 @@ retry:
   }
   p->latch.lock();
   DataPage *dp = p->GetDataPage();
+  if (!dp){
+    return RID();
+  }
   // p->latch.unlock();
   uint32_t slot = 0;
   // p->latch.lock();
