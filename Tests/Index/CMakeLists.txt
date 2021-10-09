@@ -1,0 +1,5 @@
+add_executable(volatile_index_test volatile_index_test.cc)
+target_link_libraries(volatile_index_test gtest glog gflags gtest_main table indexmanager buffermanager pthread)
+add_test(NAME volatile_index_test COMMAND volatile_index_test)
+add_custom_target(volatile_index_test_custom COMMAND ${CMAKE_CTEST_COMMAND} DEPENDS volatile_index_test)
+
