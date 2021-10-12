@@ -22,12 +22,24 @@ SkipList::SkipList(uint32_t key_size) {
   // 4. Initialize latches
   //
   // TODO: Your implementation
+  this->key_size = key_size;
+  height = 1;
+  for (int i=0; i<SKIP_LIST_MAX_LEVEL; i++){
+    head.next[i] = &tail;
+    tail.next[i] = nullptr;
+  }
 }
 
 SkipList::~SkipList() {
   // Deallocate all the towers allocated in memory and destroy latches
   //
   // TODO: Your implementation
+  SkipListNode* cur = &head;
+  while (cur){
+    SkipListNode* old = cur;
+    cur = &cur->next[0];
+    free(old);
+  }
 }
 
 SkipListNode *SkipList::NewNode(uint32_t levels, const char *key, RID rid) {
@@ -38,6 +50,7 @@ SkipListNode *SkipList::NewNode(uint32_t levels, const char *key, RID rid) {
   // 3. Copy the key to the node's key area (represented by the "key" variable)
   //
   // TODO: Your implementation
+
   return nullptr;
 }
 
