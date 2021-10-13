@@ -24,7 +24,7 @@ SkipList::SkipList(uint32_t key_size) {
   // TODO: Your implementation
   this->key_size = key_size;
   this->height = 1;
-  for (uint32_t i=0; i<SKIP_LIST_MAX_LEVEL; i++){
+  for (uint32_t i = 0; i < SKIP_LIST_MAX_LEVEL; i++){
     head.next[i] = &tail;
     tail.next[i] = nullptr;
   }
@@ -59,10 +59,10 @@ SkipListNode *SkipList::NewNode(uint32_t levels, const char *key, RID rid) {
     return nullptr;
   }
 
-  SkipListNode* node = (SkipListNode*) malloc(sizeof(SkipListNode) + strlen(key));
+  SkipListNode* node = (SkipListNode*) malloc(sizeof(SkipListNode) + key_size);
   new (node) SkipListNode(levels, rid);
-  // LOG(ERROR) << "key: " << key << ", strlen of *key: " << strlen(key);
-  memcpy(node->key, key, strlen(key));
+  // LOG(ERROR) << "key: " << key << ", size of key: " << key_size;
+  memcpy(node->key, key, key_size);
 
   for (uint32_t i = 0; i < SKIP_LIST_MAX_LEVEL; i++) {
     node->next[i] = nullptr;
