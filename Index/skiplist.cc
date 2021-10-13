@@ -51,12 +51,20 @@ SkipListNode *SkipList::NewNode(uint32_t levels, const char *key, RID rid) {
   // 3. Copy the key to the node's key area (represented by the "key" variable)
   //
   // TODO: Your implementation
+  if (levels > SKIP_LIST_MAX_LEVEL || levels <= 0) {
+    return nullptr;
+  }
 
-  // char* node = (char*)malloc(sizeof(char)*(sizeof(SkipListNode)+sizeof(key)));
-  // SkipListNode * initialized_node = new(node)SkipListNode(levels,rid);
-  // memcpy(initialized_node->key,key, strlen(key));
-  // return initialized_node;
-  return nullptr;
+  SkipListNode* node = (SkipListNode*) malloc(sizeof(SkipListNode) + strlen(key));
+  new (node) SkipListNode(levels, rid);
+  // LOG(ERROR) << "key: " << key << ", strlen of *key: " << strlen(key);
+  memcpy(node->key, key, strlen(key));
+
+  for (uint32_t i = 0; i < SKIP_LIST_MAX_LEVEL; i++) {
+    node->next[i] = nullptr;
+  }
+
+  return node;
 }
 
 SkipListNode *SkipList::Traverse(const char *key, std::vector<SkipListNode*> *out_pred_nodes) {
