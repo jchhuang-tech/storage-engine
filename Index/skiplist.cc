@@ -23,8 +23,8 @@ SkipList::SkipList(uint32_t key_size) {
   //
   // TODO: Your implementation
   this->key_size = key_size;
-  height = 1;
-  for (int i=0; i<SKIP_LIST_MAX_LEVEL; i++){
+  this->height = 1;
+  for (uint32_t i=0; i<SKIP_LIST_MAX_LEVEL; i++){
     head.next[i] = &tail;
     tail.next[i] = nullptr;
   }
@@ -34,12 +34,13 @@ SkipList::~SkipList() {
   // Deallocate all the towers allocated in memory and destroy latches
   //
   // TODO: Your implementation
-  SkipListNode* cur = &head;
-  while (cur){
-    SkipListNode* old = cur;
-    cur = &cur->next[0];
-    free(old);
-  }
+
+  // SkipListNode* cur = &head;
+  // while (cur){
+  //   SkipListNode* old = cur;
+  //   cur = cur->next[0];
+  //   free(old);
+  // }
 }
 
 SkipListNode *SkipList::NewNode(uint32_t levels, const char *key, RID rid) {
@@ -51,6 +52,10 @@ SkipListNode *SkipList::NewNode(uint32_t levels, const char *key, RID rid) {
   //
   // TODO: Your implementation
 
+  // char* node = (char*)malloc(sizeof(char)*(sizeof(SkipListNode)+sizeof(key)));
+  // SkipListNode * initialized_node = new(node)SkipListNode(levels,rid);
+  // memcpy(initialized_node->key,key, strlen(key));
+  // return initialized_node;
   return nullptr;
 }
 
