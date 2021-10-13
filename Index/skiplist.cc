@@ -35,12 +35,16 @@ SkipList::~SkipList() {
   //
   // TODO: Your implementation
 
-  // SkipListNode* cur = &head;
-  // while (cur){
-  //   SkipListNode* old = cur;
-  //   cur = cur->next[0];
-  //   free(old);
-  // }
+  SkipListNode* cur = &head;
+  while (cur){
+    if (cur == &head || cur == &tail){
+      cur = cur->next[0];
+      continue;
+    }
+    SkipListNode* old = cur;
+    cur = cur->next[0];
+    free(old);
+  }
 }
 
 SkipListNode *SkipList::NewNode(uint32_t levels, const char *key, RID rid) {
