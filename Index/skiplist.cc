@@ -10,6 +10,11 @@
 
 #include <random>
 #include "skiplist.h"
+#include <cstdio>
+#include <stdio.h>
+#include <string.h>
+
+
 
 namespace yase {
 
@@ -81,6 +86,30 @@ SkipListNode *SkipList::Traverse(const char *key, std::vector<SkipListNode*> *ou
   // is Read() or Update for which the predecessor nodes won't be useful.
   //
   // TODO: Your implementation
+  uint32_t height = this->height - 1;
+  SkipListNode * cur = &head;
+
+  for(int i = height;i>=0;i--){
+    while(cur->next[i])
+    {
+      if (cur->key < key && cur->next[i]->key > key){
+        break;
+      } else if (cur->next[i]->key < key){
+        cur = cur->next[i];
+      } else if (cur->key == key){
+        return cur;
+      }
+      // cur = cur->next[i];
+    }
+  }
+
+  //current = current->next[0];
+  // if(cur && cur->key == key)
+  // {
+  //     return cur;
+  // }
+
+
   return nullptr;
 }
 
@@ -104,7 +133,12 @@ RID SkipList::Search(const char *key) {
   // Return the RID (i.e., payload) if the key is found; otherwise return invalid RID.
   //
   // TODO: Your implementation
-  return RID();
+
+  SkipListNode * Node =  Traverse(key, nullptr);
+  if (!Node){
+    return RID();
+  }
+  return Node->rid;
 }
 
 bool SkipList::Update(const char *key, RID rid) {
