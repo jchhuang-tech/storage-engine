@@ -10,10 +10,8 @@
 
 #include <random>
 #include "skiplist.h"
-#include <cstdio>
-#include <stdio.h>
-#include <string.h>
-
+#include <random>
+#include <cmath>
 
 
 namespace yase {
@@ -104,23 +102,54 @@ SkipListNode *SkipList::Traverse(const char *key, std::vector<SkipListNode*> *ou
   // SkipListNode* cur = head.next[i];
   SkipListNode* cur = &head;
   // TODO: need to take into account the edge cases, e.g. no nodes in skip list
+  bool never_been_0 = true;
   while (true){
     if (cur == &tail){
       return nullptr;
     }
-    if (cur->next[i]->key < key){
-      cur = cur->next[i];
-    } else if (cur->next[i]->key > key){
-      if (i == 0){
-        return nullptr;
-      } else { // drill down the tower
-        out_pred_nodes->push_back(cur);
+
+    if (cur->key == key){
+      return cur;
+    } 
+    if (i > 0){
+      if (cur->next[i]->key > key){
+        // go down, repeat
+        if (out_pred_nodes){
+          out_pred_nodes->push_back(cur);
+        }
         i--;
-        continue;
+        // if (i == 0){
+        //   if (out_pred_nodes){
+        //     out_pred_nodes->push_back(cur);
+        //   }
+        // }
+      } else if (cur->next[i]->key <= key){
+        // go right, repeat 
+        cur = cur->next[i];
       }
-    } else if (cur->next[i]->key == key){
-      return cur->next[i];
+    } else { // i <= 0
+      if (out_pred_nodes){
+        if (never_been_0){
+          out_pred_nodes->push_back(cur);
+          never_been_0 = false;
+        }
+      }
+      cur = cur->next[i];
     }
+    
+    // if (cur->next[i]->key < key){
+    //   cur = cur->next[i];
+    // } else if (cur->next[i]->key > key){
+    //   if (i == 0){
+    //     return nullptr;
+    //   } else { // drill down the tower
+    //     if (out_pred_nodes){
+    //       out_pred_nodes->push_back(cur);
+    //     }
+    //     i--;
+    //     // continue;
+    //   }
+    // } 
   }
 
   return nullptr;
@@ -138,7 +167,58 @@ bool SkipList::Insert(const char *key, RID rid) {
   //    (c) return true/false to indicate a successful/failed insert
   //
   // TODO: Your implementation
-  return false;
+  std::vector<SkipListNode*> out_pred_nodes;
+  SkipListNode* node = Traverse(key, &out_pred_nodes);
+  if (node){
+    return false;
+  }
+
+  std::random_device rd;
+  std::mt19937 gen(rd()); 
+  // std::uniform_int_distribution<> rand(0, pow(2, SKIP_LIST_MAX_LEVEL) - 1);
+  // uint32_t new_tower_height = rand(gen);
+
+  std::uniform_int_distribution<> rand(0, 1);
+  uint32_t new_tower_height = 0;
+  while (rand(gen) != 0 && new_tower_height < SKIP_LIST_MAX_LEVEL){
+    new_tower_height++;
+  }
+  // uint32_t new_tower_height = ffz(random() & ((1UL << SKIP_LIST_MAX_LEVEL) - 1)); // source: CMPT 454 lecture notes 
+  LOG(ERROR) << "new tower height: " << new_tower_height;
+  
+  LOG(ERROR) << "insert 1";
+  SkipListNode* lowest_pred = out_pred_nodes.back();
+  LOG(ERROR) << "insert 2";
+  out_pred_nodes.pop_back();
+  LOG(ERROR) << "insert 3";
+
+  while (lowest_pred->next[0] != &tail && lowest_pred->next[0]->key < key){
+    LOG(ERROR) << "insert 4";
+    lowest_pred = lowest_pred->next[0];
+    LOG(ERROR) << "insert 5";
+  }
+  LOG(ERROR) << "insert 6";
+  SkipListNode* new_node = NewNode(new_tower_height, key, rid);
+  LOG(ERROR) << "insert 7";
+  SkipListNode* next_node = lowest_pred->next[0];
+  LOG(ERROR) << "insert 8";
+  lowest_pred->next[0] = new_node;
+  LOG(ERROR) << "insert 9";
+  new_node->next[0] = next_node;
+  LOG(ERROR) << "insert 10";
+
+  uint32_t cur_level = 1;
+  while (!out_pred_nodes.empty()){
+    SkipListNode* pred = out_pred_nodes.back();
+    out_pred_nodes.pop_back();
+
+    SkipListNode* next_node = pred->next[0];
+    pred->next[cur_level] = new_node;
+    new_node->next[cur_level] = next_node;
+    cur_level++;
+  }
+
+  return true;
 }
 
 RID SkipList::Search(const char *key) {
@@ -146,8 +226,7 @@ RID SkipList::Search(const char *key) {
   // Return the RID (i.e., payload) if the key is found; otherwise return invalid RID.
   //
   // TODO: Your implementation
-  std::vector<SkipListNode*> out_pred_nodes;
-  SkipListNode* node = Traverse(key, &out_pred_nodes);
+  SkipListNode* node = Traverse(key);
   if (!node){
     return RID();
   }
