@@ -86,29 +86,42 @@ SkipListNode *SkipList::Traverse(const char *key, std::vector<SkipListNode*> *ou
   // is Read() or Update for which the predecessor nodes won't be useful.
   //
   // TODO: Your implementation
-  uint32_t height = this->height - 1;
-  SkipListNode * cur = &head;
 
-  for(int i = height;i>=0;i--){
-    while(cur->next[i])
-    {
-      if (cur->key < key && cur->next[i]->key > key){
-        break;
-      } else if (cur->next[i]->key < key){
-        cur = cur->next[i];
-      } else if (cur->key == key){
-        return cur;
-      }
-      // cur = cur->next[i];
-    }
-  }
-
-  //current = current->next[0];
-  // if(cur && cur->key == key)
-  // {
-  //     return cur;
+  // for (int i = height - 1; i >= 0; i--){
+  //   SkipListNode* cur = head.next[i];
+  //   while (cur != &tail) {
+  //     if (cur->key < key){
+  //       cur = cur->next[i]; // to next node
+  //     } else if (cur->key > key){
+  //       break; // go down 1 level
+  //     } else if (cur->key == key){
+  //       return cur;
+  //     }
+  //   }
   // }
 
+  int i = height - 1;
+  // SkipListNode* cur = head.next[i];
+  SkipListNode* cur = &head;
+  // TODO: need to take into account the edge cases, e.g. no nodes in skip list
+  while (true){
+    if (cur == &tail){
+      return nullptr;
+    }
+    if (cur->next[i]->key < key){
+      cur = cur->next[i];
+    } else if (cur->next[i]->key > key){
+      if (i == 0){
+        return nullptr;
+      } else { // drill down the tower
+        out_pred_nodes->push_back(cur);
+        i--;
+        continue;
+      }
+    } else if (cur->next[i]->key == key){
+      return cur->next[i];
+    }
+  }
 
   return nullptr;
 }
@@ -133,12 +146,12 @@ RID SkipList::Search(const char *key) {
   // Return the RID (i.e., payload) if the key is found; otherwise return invalid RID.
   //
   // TODO: Your implementation
-
-  SkipListNode * Node =  Traverse(key, nullptr);
-  if (!Node){
+  std::vector<SkipListNode*> out_pred_nodes;
+  SkipListNode* node = Traverse(key, &out_pred_nodes);
+  if (!node){
     return RID();
   }
-  return Node->rid;
+  return node->rid;
 }
 
 bool SkipList::Update(const char *key, RID rid) {
