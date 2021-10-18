@@ -10,6 +10,11 @@
 
 #include <random>
 #include "skiplist.h"
+#include <cstdio>
+#include <stdio.h>
+#include <string.h>
+
+
 
 namespace yase {
 
@@ -81,6 +86,43 @@ SkipListNode *SkipList::Traverse(const char *key, std::vector<SkipListNode*> *ou
   // is Read() or Update for which the predecessor nodes won't be useful.
   //
   // TODO: Your implementation
+
+  // for (int i = height - 1; i >= 0; i--){
+  //   SkipListNode* cur = head.next[i];
+  //   while (cur != &tail) {
+  //     if (cur->key < key){
+  //       cur = cur->next[i]; // to next node
+  //     } else if (cur->key > key){
+  //       break; // go down 1 level
+  //     } else if (cur->key == key){
+  //       return cur;
+  //     }
+  //   }
+  // }
+
+  int i = height - 1;
+  // SkipListNode* cur = head.next[i];
+  SkipListNode* cur = &head;
+  // TODO: need to take into account the edge cases, e.g. no nodes in skip list
+  while (true){
+    if (cur == &tail){
+      return nullptr;
+    }
+    if (cur->next[i]->key < key){
+      cur = cur->next[i];
+    } else if (cur->next[i]->key > key){
+      if (i == 0){
+        return nullptr;
+      } else { // drill down the tower
+        out_pred_nodes->push_back(cur);
+        i--;
+        continue;
+      }
+    } else if (cur->next[i]->key == key){
+      return cur->next[i];
+    }
+  }
+
   return nullptr;
 }
 
@@ -104,7 +146,12 @@ RID SkipList::Search(const char *key) {
   // Return the RID (i.e., payload) if the key is found; otherwise return invalid RID.
   //
   // TODO: Your implementation
-  return RID();
+  std::vector<SkipListNode*> out_pred_nodes;
+  SkipListNode* node = Traverse(key, &out_pred_nodes);
+  if (!node){
+    return RID();
+  }
+  return node->rid;
 }
 
 bool SkipList::Update(const char *key, RID rid) {
