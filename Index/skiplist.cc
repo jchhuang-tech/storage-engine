@@ -99,7 +99,7 @@ SkipListNode *SkipList::Traverse(const char *key, std::vector<SkipListNode*> *ou
   // }
 
   // LOG(ERROR) << "traverse 1";
-  int i = height - 1;
+  int i = SKIP_LIST_MAX_LEVEL - 1;
   // SkipListNode* cur = head.next[i];
   // LOG(ERROR) << "traverse 2";
   SkipListNode* cur = &head;
@@ -107,9 +107,9 @@ SkipListNode *SkipList::Traverse(const char *key, std::vector<SkipListNode*> *ou
   // TODO: need to take into account the edge cases, e.g. no nodes in skip list
   bool never_been_0 = true;
   // LOG(ERROR) << "traverse 4";
-  if (out_pred_nodes){
-    out_pred_nodes->push_back(cur);
-  }
+  // if (out_pred_nodes){
+  //   out_pred_nodes->push_back(cur);
+  // }
   // LOG(ERROR) << "traverse 5";
   while (true){
     // LOG(ERROR) << "traverse 6";
@@ -119,14 +119,14 @@ SkipListNode *SkipList::Traverse(const char *key, std::vector<SkipListNode*> *ou
     }
     // LOG(ERROR) << "traverse 8";
 
-    if (cur->key == key){
+    if (strncmp(cur->key, key, key_size) == 0){
       // LOG(ERROR) << "traverse 9";
       return cur;
     } 
     // LOG(ERROR) << "traverse 10";
     if (i > 0){
       // LOG(ERROR) << "traverse 11";
-      if (cur->next[i]->key > key){
+      if (strncmp(cur->next[i]->key, key, key_size) > 0 || cur->next[i] == &tail){
         // LOG(ERROR) << "traverse 12";
         // go down, repeat
         if (out_pred_nodes){
@@ -142,7 +142,7 @@ SkipListNode *SkipList::Traverse(const char *key, std::vector<SkipListNode*> *ou
         //     out_pred_nodes->push_back(cur);
         //   }
         // }
-      } else if (cur->next[i]->key <= key){
+      } else if (strncmp(cur->next[i]->key, key, key_size) <= 0){
         // LOG(ERROR) << "traverse 17";
         // go right, repeat 
         cur = cur->next[i];
@@ -215,6 +215,7 @@ bool SkipList::Insert(const char *key, RID rid) {
   }
   // uint32_t new_tower_height = ffz(random() & ((1UL << SKIP_LIST_MAX_LEVEL) - 1)); // source: CMPT 454 lecture notes 
   // LOG(ERROR) << "new tower height: " << new_tower_height;
+  height = std::max(height, new_tower_height);
   
   // LOG(ERROR) << "insert 1";
   SkipListNode* lowest_pred = out_pred_nodes.back();
@@ -222,40 +223,52 @@ bool SkipList::Insert(const char *key, RID rid) {
   out_pred_nodes.pop_back();
   // LOG(ERROR) << "insert 3";
 
-  while (lowest_pred->next[0] != &tail && lowest_pred->next[0]->key < key){
+  while (lowest_pred->next[0] != &tail && strncmp(lowest_pred->next[0]->key, key, key_size) < 0){
     // LOG(ERROR) << "insert 4";
     lowest_pred = lowest_pred->next[0];
     // LOG(ERROR) << "insert 5";
   }
+  out_pred_nodes.push_back(lowest_pred);
   // LOG(ERROR) << "insert 6";
   SkipListNode* new_node = NewNode(new_tower_height, key, rid);
   // LOG(ERROR) << "insert 7";
-  SkipListNode* next_node = lowest_pred->next[0];
-  // LOG(ERROR) << "insert 8";
-  lowest_pred->next[0] = new_node;
-  // LOG(ERROR) << "insert 9";
-  new_node->next[0] = next_node;
-  // LOG(ERROR) << "insert 10";
-
-  uint32_t cur_level = 1;
-  // LOG(ERROR) << "insert 11";
-  while (!out_pred_nodes.empty()){
-    // LOG(ERROR) << "insert 12";
+  for (uint32_t i=0; i<new_tower_height; i++){
+    // LOG(ERROR) << "out_pred_nodes.size(): " << out_pred_nodes.size();
     SkipListNode* pred = out_pred_nodes.back();
-    // LOG(ERROR) << "insert 13";
     out_pred_nodes.pop_back();
-    // LOG(ERROR) << "insert 14";
-
-    SkipListNode* next_node = pred->next[0];
-    // LOG(ERROR) << "insert 15";
-    pred->next[cur_level] = new_node;
-    // LOG(ERROR) << "insert 16";
-    new_node->next[cur_level] = next_node;
-    // LOG(ERROR) << "insert 17";
-    cur_level++;
-    // LOG(ERROR) << "insert 18";
+    SkipListNode* next_node = pred->next[i];
+    pred->next[i] = new_node;
+    new_node->next[i] = next_node;
   }
-  // LOG(ERROR) << "insert 19";
+  for (uint32_t i=new_tower_height; i<SKIP_LIST_MAX_LEVEL; i++){
+    new_node->next[i] = &tail;
+  }
+  // SkipListNode* next_node = lowest_pred->next[0];
+  // // LOG(ERROR) << "insert 8";
+  // lowest_pred->next[0] = new_node;
+  // // LOG(ERROR) << "insert 9";
+  // new_node->next[0] = next_node;
+  // // LOG(ERROR) << "insert 10";
+
+  // uint32_t cur_level = 1;
+  // // LOG(ERROR) << "insert 11";
+  // while (!out_pred_nodes.empty()){
+  //   // LOG(ERROR) << "insert 12";
+  //   SkipListNode* pred = out_pred_nodes.back();
+  //   // LOG(ERROR) << "insert 13";
+  //   out_pred_nodes.pop_back();
+  //   // LOG(ERROR) << "insert 14";
+
+  //   SkipListNode* next_node = pred->next[0];
+  //   // LOG(ERROR) << "insert 15";
+  //   pred->next[cur_level] = new_node;
+  //   // LOG(ERROR) << "insert 16";
+  //   new_node->next[cur_level] = next_node;
+  //   // LOG(ERROR) << "insert 17";
+  //   cur_level++;
+  //   // LOG(ERROR) << "insert 18";
+  // }
+  // // LOG(ERROR) << "insert 19";
 
   return true;
 }
