@@ -119,14 +119,14 @@ SkipListNode *SkipList::Traverse(const char *key, std::vector<SkipListNode*> *ou
     }
     // LOG(ERROR) << "traverse 8";
 
-    if (strncmp(cur->key, key, key_size) == 0){
+    if (memcmp(cur->key, key, key_size) == 0){
       // LOG(ERROR) << "traverse 9";
       return cur;
     } 
     // LOG(ERROR) << "traverse 10";
     if (i > 0){
       // LOG(ERROR) << "traverse 11";
-      if (strncmp(cur->next[i]->key, key, key_size) > 0 || cur->next[i] == &tail){
+      if (memcmp(cur->next[i]->key, key, key_size) > 0 || cur->next[i] == &tail){
         // LOG(ERROR) << "traverse 12";
         // go down, repeat
         if (out_pred_nodes){
@@ -142,7 +142,7 @@ SkipListNode *SkipList::Traverse(const char *key, std::vector<SkipListNode*> *ou
         //     out_pred_nodes->push_back(cur);
         //   }
         // }
-      } else if (strncmp(cur->next[i]->key, key, key_size) <= 0){
+      } else if (memcmp(cur->next[i]->key, key, key_size) <= 0){
         // LOG(ERROR) << "traverse 17";
         // go right, repeat 
         cur = cur->next[i];
@@ -223,7 +223,7 @@ bool SkipList::Insert(const char *key, RID rid) {
   out_pred_nodes.pop_back();
   // LOG(ERROR) << "insert 3";
 
-  while (lowest_pred->next[0] != &tail && strncmp(lowest_pred->next[0]->key, key, key_size) < 0){
+  while (lowest_pred->next[0] != &tail && memcmp(lowest_pred->next[0]->key, key, key_size) < 0){
     // LOG(ERROR) << "insert 4";
     lowest_pred = lowest_pred->next[0];
     // LOG(ERROR) << "insert 5";
@@ -313,6 +313,8 @@ bool SkipList::Delete(const char *key) {
   // Return true if the operation succeeeded, false if the key is not found.
   //
   // TODO: Your implementation
+  // std::vector<SkipListNode*> out_pred_nodes;
+  // SkipListNode* node = Traverse(key, &out_pred_nodes);
   return false;
 }
 
