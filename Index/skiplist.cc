@@ -295,7 +295,12 @@ bool SkipList::Update(const char *key, RID rid) {
   // otherwise return false.
   //
   // TODO: Your implementation
-  return false;
+  SkipListNode* node = Traverse(key);
+  if (!node){
+    return false;
+  }
+  node->rid = rid;
+  return true;
 }
 
 bool SkipList::Delete(const char *key) {
