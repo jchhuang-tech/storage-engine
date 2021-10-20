@@ -64,7 +64,7 @@ SkipListNode *SkipList::NewNode(uint32_t levels, const char *key, RID rid) {
 
   SkipListNode* node = (SkipListNode*) malloc(sizeof(SkipListNode) + key_size);
   new (node) SkipListNode(levels, rid);
-  // LOG(ERROR) << "key: " << key << ", size of key: " << key_size;
+  // // LOG(ERROR) << "key: " << key << ", size of key: " << key_size;
   memcpy(node->key, key, key_size);
 
   for (uint32_t i = 0; i < SKIP_LIST_MAX_LEVEL; i++) {
@@ -98,44 +98,74 @@ SkipListNode *SkipList::Traverse(const char *key, std::vector<SkipListNode*> *ou
   //   }
   // }
 
+  // LOG(ERROR) << "traverse 1";
   int i = height - 1;
   // SkipListNode* cur = head.next[i];
+  // LOG(ERROR) << "traverse 2";
   SkipListNode* cur = &head;
+  // LOG(ERROR) << "traverse 3";
   // TODO: need to take into account the edge cases, e.g. no nodes in skip list
   bool never_been_0 = true;
+  // LOG(ERROR) << "traverse 4";
+  if (out_pred_nodes){
+    out_pred_nodes->push_back(cur);
+  }
+  // LOG(ERROR) << "traverse 5";
   while (true){
+    // LOG(ERROR) << "traverse 6";
     if (cur == &tail){
+      // LOG(ERROR) << "traverse 7";
       return nullptr;
     }
+    // LOG(ERROR) << "traverse 8";
 
     if (cur->key == key){
+      // LOG(ERROR) << "traverse 9";
       return cur;
     } 
+    // LOG(ERROR) << "traverse 10";
     if (i > 0){
+      // LOG(ERROR) << "traverse 11";
       if (cur->next[i]->key > key){
+        // LOG(ERROR) << "traverse 12";
         // go down, repeat
         if (out_pred_nodes){
+          // LOG(ERROR) << "traverse 13";
           out_pred_nodes->push_back(cur);
+          // LOG(ERROR) << "traverse 14";
         }
+        // LOG(ERROR) << "traverse 15";
         i--;
+        // LOG(ERROR) << "traverse 16";
         // if (i == 0){
         //   if (out_pred_nodes){
         //     out_pred_nodes->push_back(cur);
         //   }
         // }
       } else if (cur->next[i]->key <= key){
+        // LOG(ERROR) << "traverse 17";
         // go right, repeat 
         cur = cur->next[i];
+        // LOG(ERROR) << "traverse 18";
       }
     } else { // i <= 0
+      // LOG(ERROR) << "traverse 19";
       if (out_pred_nodes){
+        // LOG(ERROR) << "traverse 20";
         if (never_been_0){
+          // LOG(ERROR) << "traverse 21";
           out_pred_nodes->push_back(cur);
+          // LOG(ERROR) << "traverse 22";
           never_been_0 = false;
+          // LOG(ERROR) << "traverse 23";
         }
+        // LOG(ERROR) << "traverse 24";
       }
+      // LOG(ERROR) << "traverse 25";
       cur = cur->next[i];
+      // LOG(ERROR) << "traverse 26";
     }
+    // LOG(ERROR) << "traverse 27";
     
     // if (cur->next[i]->key < key){
     //   cur = cur->next[i];
@@ -179,44 +209,53 @@ bool SkipList::Insert(const char *key, RID rid) {
   // uint32_t new_tower_height = rand(gen);
 
   std::uniform_int_distribution<> rand(0, 1);
-  uint32_t new_tower_height = 0;
+  uint32_t new_tower_height = 1;
   while (rand(gen) != 0 && new_tower_height < SKIP_LIST_MAX_LEVEL){
     new_tower_height++;
   }
   // uint32_t new_tower_height = ffz(random() & ((1UL << SKIP_LIST_MAX_LEVEL) - 1)); // source: CMPT 454 lecture notes 
-  LOG(ERROR) << "new tower height: " << new_tower_height;
+  // LOG(ERROR) << "new tower height: " << new_tower_height;
   
-  LOG(ERROR) << "insert 1";
+  // LOG(ERROR) << "insert 1";
   SkipListNode* lowest_pred = out_pred_nodes.back();
-  LOG(ERROR) << "insert 2";
+  // LOG(ERROR) << "insert 2";
   out_pred_nodes.pop_back();
-  LOG(ERROR) << "insert 3";
+  // LOG(ERROR) << "insert 3";
 
   while (lowest_pred->next[0] != &tail && lowest_pred->next[0]->key < key){
-    LOG(ERROR) << "insert 4";
+    // LOG(ERROR) << "insert 4";
     lowest_pred = lowest_pred->next[0];
-    LOG(ERROR) << "insert 5";
+    // LOG(ERROR) << "insert 5";
   }
-  LOG(ERROR) << "insert 6";
+  // LOG(ERROR) << "insert 6";
   SkipListNode* new_node = NewNode(new_tower_height, key, rid);
-  LOG(ERROR) << "insert 7";
+  // LOG(ERROR) << "insert 7";
   SkipListNode* next_node = lowest_pred->next[0];
-  LOG(ERROR) << "insert 8";
+  // LOG(ERROR) << "insert 8";
   lowest_pred->next[0] = new_node;
-  LOG(ERROR) << "insert 9";
+  // LOG(ERROR) << "insert 9";
   new_node->next[0] = next_node;
-  LOG(ERROR) << "insert 10";
+  // LOG(ERROR) << "insert 10";
 
   uint32_t cur_level = 1;
+  // LOG(ERROR) << "insert 11";
   while (!out_pred_nodes.empty()){
+    // LOG(ERROR) << "insert 12";
     SkipListNode* pred = out_pred_nodes.back();
+    // LOG(ERROR) << "insert 13";
     out_pred_nodes.pop_back();
+    // LOG(ERROR) << "insert 14";
 
     SkipListNode* next_node = pred->next[0];
+    // LOG(ERROR) << "insert 15";
     pred->next[cur_level] = new_node;
+    // LOG(ERROR) << "insert 16";
     new_node->next[cur_level] = next_node;
+    // LOG(ERROR) << "insert 17";
     cur_level++;
+    // LOG(ERROR) << "insert 18";
   }
+  // LOG(ERROR) << "insert 19";
 
   return true;
 }
@@ -226,10 +265,14 @@ RID SkipList::Search(const char *key) {
   // Return the RID (i.e., payload) if the key is found; otherwise return invalid RID.
   //
   // TODO: Your implementation
+  // LOG(ERROR) << "search 1";
   SkipListNode* node = Traverse(key);
+  // LOG(ERROR) << "search 2";
   if (!node){
+    // LOG(ERROR) << "search 3";
     return RID();
   }
+  // LOG(ERROR) << "search 4";
   return node->rid;
 }
 
