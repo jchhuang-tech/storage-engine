@@ -240,9 +240,7 @@ bool SkipList::Insert(const char *key, RID rid) {
     pred->next[i] = new_node;
     new_node->next[i] = next_node;
   }
-  for (uint32_t i=new_tower_height; i<SKIP_LIST_MAX_LEVEL; i++){
-    new_node->next[i] = &tail;
-  }
+
   // SkipListNode* next_node = lowest_pred->next[0];
   // // LOG(ERROR) << "insert 8";
   // lowest_pred->next[0] = new_node;
