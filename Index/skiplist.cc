@@ -86,8 +86,12 @@ SkipListNode *SkipList::Traverse(const char *key, std::vector<SkipListNode*> *ou
   // TODO: Your implementation
   int i = SKIP_LIST_MAX_LEVEL - 1;
   SkipListNode* cur = &head;
+  SkipListNode* pred = cur;
   while (cur != &tail){
     if (memcmp(cur->key, key, key_size) == 0){
+      if (out_pred_nodes){
+        out_pred_nodes->push_back(pred);
+      }
       return cur;
     } 
     if (memcmp(cur->next[i]->key, key, key_size) > 0 || cur->next[i] == &tail){
@@ -102,6 +106,7 @@ SkipListNode *SkipList::Traverse(const char *key, std::vector<SkipListNode*> *ou
       }
     } else if (memcmp(cur->next[i]->key, key, key_size) <= 0){
       // go right, repeat
+      pred = cur;
       cur = cur->next[i];
     }
   }
@@ -198,22 +203,35 @@ bool SkipList::Delete(const char *key) {
   //
   // TODO: Your implementation
   std::vector<SkipListNode*> out_pred_nodes;
+                                      LOG(ERROR) << "ಠ_ಠ";
   SkipListNode* node = Traverse(key, &out_pred_nodes);
+                                      LOG(ERROR) << "ಠ_ಠ";
   if (!node){
+                                      LOG(ERROR) << "ಠ_ಠ";
     return false;
   }
-  // LOG(ERROR) << "ಠ_ಠ";
+                                      LOG(ERROR) << "ಠ_ಠ";
+  LOG(ERROR) << "ಠ_ಠ";
   SkipListNode* cur = out_pred_nodes.back();
-  out_pred_nodes.pop_back();
+                                      LOG(ERROR) << "ಠ_ಠ";
+  // out_pred_nodes.pop_back();
 
   int i = node->nlevels - 1;
+  LOG(ERROR) << i;
   while (i >= 0){
+    LOG(ERROR) << i;
     if (cur->next[i] == node){
+      LOG(ERROR) << i;
       cur->next[i] = node->next[i];
+      LOG(ERROR) << i;
       i--;
+      LOG(ERROR) << i;
     } else {
+      LOG(ERROR) << i;
       cur = cur->next[i];
+      LOG(ERROR) << i;
     }
+    LOG(ERROR) << i;
   }
   free(node);
   return true;
