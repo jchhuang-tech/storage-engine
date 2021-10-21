@@ -210,9 +210,6 @@ bool SkipList::Delete(const char *key) {
   while (i >= 0){
     if (cur->next[i] == node){
       cur->next[i] = node->next[i];
-      if (i == 0){
-        break;
-      }
       i--;
     } else {
       cur = cur->next[i];
