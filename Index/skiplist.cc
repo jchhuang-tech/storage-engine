@@ -86,15 +86,15 @@ SkipListNode *SkipList::Traverse(const char *key, std::vector<SkipListNode*> *ou
   // TODO: Your implementation
   int i = SKIP_LIST_MAX_LEVEL - 1;
   SkipListNode* cur = &head;
-  SkipListNode* pred = cur;
+  SkipListNode* pred = cur; // POTENTIAL BUGS HERE!
   while (cur != &tail){
-    if (memcmp(cur->key, key, key_size) == 0){
+    if (memcmp(cur->key, key, key_size) == 0){ // cur key == key
       if (out_pred_nodes){
         out_pred_nodes->push_back(pred);
       }
       return cur;
     } 
-    if (memcmp(cur->next[i]->key, key, key_size) > 0 || cur->next[i] == &tail){
+    if (memcmp(cur->next[i]->key, key, key_size) > 0 || cur->next[i] == &tail){ // next key > key
       if (out_pred_nodes){
         out_pred_nodes->push_back(cur);
       }
@@ -104,7 +104,7 @@ SkipListNode *SkipList::Traverse(const char *key, std::vector<SkipListNode*> *ou
       } else {
         return nullptr;
       }
-    } else if (memcmp(cur->next[i]->key, key, key_size) <= 0){
+    } else if (memcmp(cur->next[i]->key, key, key_size) <= 0){ // next key <= key
       // go right, repeat
       pred = cur;
       cur = cur->next[i];
