@@ -202,19 +202,21 @@ bool SkipList::Delete(const char *key) {
   if (!node){
     return false;
   }
-  SkipListNode* pred = out_pred_nodes.back();
+  // LOG(ERROR) << "ಠ_ಠ";
+  SkipListNode* cur = out_pred_nodes.back();
   out_pred_nodes.pop_back();
 
-  // uint32_t i = node->nlevels - 1;
-  // while (i >= 0){
-
-  // }
-
-
-  for (uint32_t i=0; i<node->nlevels; i--){
-
-    // SkipListNode* next = node->next[i];
-    pred->next[i] = node->next[i];
+  int i = node->nlevels - 1;
+  while (i >= 0){
+    if (cur->next[i] == node){
+      cur->next[i] = node->next[i];
+      if (i == 0){
+        break;
+      }
+      i--;
+    } else {
+      cur = cur->next[i];
+    }
   }
   free(node);
   return true;
