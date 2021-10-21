@@ -84,104 +84,27 @@ SkipListNode *SkipList::Traverse(const char *key, std::vector<SkipListNode*> *ou
   // is Read() or Update for which the predecessor nodes won't be useful.
   //
   // TODO: Your implementation
-
-  // for (int i = height - 1; i >= 0; i--){
-  //   SkipListNode* cur = head.next[i];
-  //   while (cur != &tail) {
-  //     if (cur->key < key){
-  //       cur = cur->next[i]; // to next node
-  //     } else if (cur->key > key){
-  //       break; // go down 1 level
-  //     } else if (cur->key == key){
-  //       return cur;
-  //     }
-  //   }
-  // }
-
-  // LOG(ERROR) << "traverse 1";
   int i = SKIP_LIST_MAX_LEVEL - 1;
-  // SkipListNode* cur = head.next[i];
-  // LOG(ERROR) << "traverse 2";
   SkipListNode* cur = &head;
-  // LOG(ERROR) << "traverse 3";
-  // TODO: need to take into account the edge cases, e.g. no nodes in skip list
-  bool never_been_0 = true;
-  // LOG(ERROR) << "traverse 4";
-  // if (out_pred_nodes){
-  //   out_pred_nodes->push_back(cur);
-  // }
-  // LOG(ERROR) << "traverse 5";
-  while (true){
-    // LOG(ERROR) << "traverse 6";
-    if (cur == &tail){
-      // LOG(ERROR) << "traverse 7";
-      return nullptr;
-    }
-    // LOG(ERROR) << "traverse 8";
-
+  while (cur != &tail){
     if (memcmp(cur->key, key, key_size) == 0){
-      // LOG(ERROR) << "traverse 9";
       return cur;
     } 
-    // LOG(ERROR) << "traverse 10";
-    if (i > 0){
-      // LOG(ERROR) << "traverse 11";
-      if (memcmp(cur->next[i]->key, key, key_size) > 0 || cur->next[i] == &tail){
-        // LOG(ERROR) << "traverse 12";
-        // go down, repeat
-        if (out_pred_nodes){
-          // LOG(ERROR) << "traverse 13";
-          out_pred_nodes->push_back(cur);
-          // LOG(ERROR) << "traverse 14";
-        }
-        // LOG(ERROR) << "traverse 15";
-        i--;
-        // LOG(ERROR) << "traverse 16";
-        // if (i == 0){
-        //   if (out_pred_nodes){
-        //     out_pred_nodes->push_back(cur);
-        //   }
-        // }
-      } else if (memcmp(cur->next[i]->key, key, key_size) <= 0){
-        // LOG(ERROR) << "traverse 17";
-        // go right, repeat 
-        cur = cur->next[i];
-        // LOG(ERROR) << "traverse 18";
-      }
-    } else { // i <= 0
-      // LOG(ERROR) << "traverse 19";
+    if (memcmp(cur->next[i]->key, key, key_size) > 0 || cur->next[i] == &tail){
       if (out_pred_nodes){
-        // LOG(ERROR) << "traverse 20";
-        if (never_been_0){
-          // LOG(ERROR) << "traverse 21";
-          out_pred_nodes->push_back(cur);
-          // LOG(ERROR) << "traverse 22";
-          never_been_0 = false;
-          // LOG(ERROR) << "traverse 23";
-        }
-        // LOG(ERROR) << "traverse 24";
+        out_pred_nodes->push_back(cur);
       }
-      // LOG(ERROR) << "traverse 25";
+      if (i > 0){
+        // go down, repeat
+        i--;
+      } else {
+        return nullptr;
+      }
+    } else if (memcmp(cur->next[i]->key, key, key_size) <= 0){
+      // go right, repeat
       cur = cur->next[i];
-      // LOG(ERROR) << "traverse 26";
     }
-    // LOG(ERROR) << "traverse 27";
-    
-    // if (cur->next[i]->key < key){
-    //   cur = cur->next[i];
-    // } else if (cur->next[i]->key > key){
-    //   if (i == 0){
-    //     return nullptr;
-    //   } else { // drill down the tower
-    //     if (out_pred_nodes){
-    //       out_pred_nodes->push_back(cur);
-    //     }
-    //     i--;
-    //     // continue;
-    //   }
-    // } 
   }
-
   return nullptr;
 }
 
@@ -218,18 +141,6 @@ bool SkipList::Insert(const char *key, RID rid) {
   height = std::max(height, new_tower_height);
   
   // LOG(ERROR) << "insert 1";
-  SkipListNode* lowest_pred = out_pred_nodes.back();
-  // LOG(ERROR) << "insert 2";
-  out_pred_nodes.pop_back();
-  // LOG(ERROR) << "insert 3";
-
-  while (lowest_pred->next[0] != &tail && memcmp(lowest_pred->next[0]->key, key, key_size) < 0){
-    // LOG(ERROR) << "insert 4";
-    lowest_pred = lowest_pred->next[0];
-    // LOG(ERROR) << "insert 5";
-  }
-  out_pred_nodes.push_back(lowest_pred);
-  // LOG(ERROR) << "insert 6";
   SkipListNode* new_node = NewNode(new_tower_height, key, rid);
   // LOG(ERROR) << "insert 7";
   for (uint32_t i=0; i<new_tower_height; i++){
@@ -240,34 +151,7 @@ bool SkipList::Insert(const char *key, RID rid) {
     pred->next[i] = new_node;
     new_node->next[i] = next_node;
   }
-
-  // SkipListNode* next_node = lowest_pred->next[0];
-  // // LOG(ERROR) << "insert 8";
-  // lowest_pred->next[0] = new_node;
-  // // LOG(ERROR) << "insert 9";
-  // new_node->next[0] = next_node;
-  // // LOG(ERROR) << "insert 10";
-
-  // uint32_t cur_level = 1;
-  // // LOG(ERROR) << "insert 11";
-  // while (!out_pred_nodes.empty()){
-  //   // LOG(ERROR) << "insert 12";
-  //   SkipListNode* pred = out_pred_nodes.back();
-  //   // LOG(ERROR) << "insert 13";
-  //   out_pred_nodes.pop_back();
-  //   // LOG(ERROR) << "insert 14";
-
-  //   SkipListNode* next_node = pred->next[0];
-  //   // LOG(ERROR) << "insert 15";
-  //   pred->next[cur_level] = new_node;
-  //   // LOG(ERROR) << "insert 16";
-  //   new_node->next[cur_level] = next_node;
-  //   // LOG(ERROR) << "insert 17";
-  //   cur_level++;
-  //   // LOG(ERROR) << "insert 18";
-  // }
-  // // LOG(ERROR) << "insert 19";
-
+  // LOG(ERROR) << "insert 8";
   return true;
 }
 
@@ -313,9 +197,27 @@ bool SkipList::Delete(const char *key) {
   // Return true if the operation succeeeded, false if the key is not found.
   //
   // TODO: Your implementation
-  // std::vector<SkipListNode*> out_pred_nodes;
-  // SkipListNode* node = Traverse(key, &out_pred_nodes);
-  return false;
+  std::vector<SkipListNode*> out_pred_nodes;
+  SkipListNode* node = Traverse(key, &out_pred_nodes);
+  if (!node){
+    return false;
+  }
+  SkipListNode* pred = out_pred_nodes.back();
+  out_pred_nodes.pop_back();
+
+  // uint32_t i = node->nlevels - 1;
+  // while (i >= 0){
+
+  // }
+
+
+  for (uint32_t i=0; i<node->nlevels; i--){
+
+    // SkipListNode* next = node->next[i];
+    pred->next[i] = node->next[i];
+  }
+  free(node);
+  return true;
 }
 
 void SkipList::ForwardScan(const char *start_key, uint32_t nkeys, bool inclusive,
