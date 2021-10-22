@@ -10,8 +10,8 @@
 
 #include <random>
 #include "skiplist.h"
-#include <random>
 #include <cmath>
+#include <utility>
 
 
 namespace yase {
@@ -256,6 +256,27 @@ void SkipList::ForwardScan(const char *start_key, uint32_t nkeys, bool inclusive
   // 5. A start key of null means scanning from the smallest record.
   //
   // TODO: Your implementation
+  if (!out_records || nkeys == 0){
+    return;
+  }
+  SkipListNode* cur = Traverse(start_key);
+  if (!start_key){
+    cur = head.next[0];
+  }
+  uint32_t i = 0;
+  std::pair <char *, RID> p;
+  if (!inclusive){
+    cur = cur->next[0];
+  }
+  while (cur != &tail && i < nkeys){
+    LOG(ERROR) << cur->key;
+    char* key_copy = (char *)malloc(key_size);
+    memcpy(key_copy, cur->key, key_size);
+    p = std::make_pair(key_copy, cur->rid);
+    cur = cur->next[0];
+    out_records->push_back(p);
+    i++;
+  }
 }
 
 }  // namespace yase
