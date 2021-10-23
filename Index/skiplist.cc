@@ -32,16 +32,12 @@ SkipList::SkipList(uint32_t key_size) {
     tail.next[i] = nullptr;
     pthread_rwlock_init(latches + i, NULL);
   }
-  // for (uint32_t i = 0; i < SKIP_LIST_MAX_LEVEL; i++){
-  //   pthread_rwlock_init(latches + i, NULL);
-  // }
 }
 
 SkipList::~SkipList() {
   // Deallocate all the towers allocated in memory and destroy latches
   //
   // TODO: Your implementation
-
   SkipListNode* cur = &head;
   while (cur){
     if (cur == &head || cur == &tail){
@@ -52,6 +48,7 @@ SkipList::~SkipList() {
     cur = cur->next[0];
     free(old);
   }
+
   for (uint32_t i = 0; i < SKIP_LIST_MAX_LEVEL; i++){
     pthread_rwlock_destroy(latches + i);
   }
@@ -71,7 +68,6 @@ SkipListNode *SkipList::NewNode(uint32_t levels, const char *key, RID rid) {
 
   SkipListNode* node = (SkipListNode*) malloc(sizeof(SkipListNode) + key_size);
   new (node) SkipListNode(levels, rid);
-  // // // LOG(ERROR) << "key: " << key << ", size of key: " << key_size;
   memcpy(node->key, key, key_size);
 
   for (uint32_t i = 0; i < SKIP_LIST_MAX_LEVEL; i++) {
@@ -94,13 +90,11 @@ SkipListNode *SkipList::Traverse(const char *key, std::vector<SkipListNode*> *ou
   int i = SKIP_LIST_MAX_LEVEL - 1;
   SkipListNode* cur = &head;
   SkipListNode* pred = cur; // POTENTIAL BUGS HERE!
-  pthread_rwlock_rdlock(latches + i);
   while (cur != &tail){
     if (memcmp(cur->key, key, key_size) == 0 && cur != &head){ // cur key == key
       if (out_pred_nodes){
         out_pred_nodes->push_back(pred);
       }
-      pthread_rwlock_unlock(latches + i);
       return cur;
     } 
     if (memcmp(cur->next[i]->key, key, key_size) > 0 || cur->next[i] == &tail){ // next key > key
@@ -109,11 +103,8 @@ SkipListNode *SkipList::Traverse(const char *key, std::vector<SkipListNode*> *ou
       }
       if (i > 0){
         // go down, repeat
-        pthread_rwlock_unlock(latches + i);
         i--;
-        pthread_rwlock_rdlock(latches + i);
       } else {
-        pthread_rwlock_unlock(latches + i);
         return nullptr;
       }
     } else if (memcmp(cur->next[i]->key, key, key_size) <= 0){ // next key <= key
@@ -122,7 +113,6 @@ SkipListNode *SkipList::Traverse(const char *key, std::vector<SkipListNode*> *ou
       cur = cur->next[i];
     }
   }
-  pthread_rwlock_unlock(latches + i);
   return nullptr;
 }
 
@@ -138,17 +128,10 @@ bool SkipList::Insert(const char *key, RID rid) {
   //    (c) return true/false to indicate a successful/failed insert
   //
   // TODO: Your implementation
-  std::vector<SkipListNode*> out_pred_nodes;
-  SkipListNode* node = Traverse(key, &out_pred_nodes);
-  if (node){
-    return false;
-  }
-
   std::random_device rd;
   std::mt19937 gen(rd()); 
   // std::uniform_int_distribution<> rand(0, pow(2, SKIP_LIST_MAX_LEVEL) - 1);
   // uint32_t new_tower_height = rand(gen);
-
   std::uniform_int_distribution<> rand(0, 1);
   uint32_t new_tower_height = 1;
   while (rand(gen) != 0 && new_tower_height < SKIP_LIST_MAX_LEVEL){
@@ -156,22 +139,40 @@ bool SkipList::Insert(const char *key, RID rid) {
   }
   // uint32_t new_tower_height = ffz(random() & ((1UL << SKIP_LIST_MAX_LEVEL) - 1)); // source: CMPT 454 lecture notes 
   // // LOG(ERROR) << "new tower height: " << new_tower_height;
-  height = std::max(height, new_tower_height);
+
+  for (uint32_t i = 0; i < SKIP_LIST_MAX_LEVEL; i++){
+    if (i >= new_tower_height){
+      pthread_rwlock_rdlock(latches + i);
+    } else {
+      pthread_rwlock_wrlock(latches + i);
+    }
+  }
+
+  std::vector<SkipListNode*> out_pred_nodes;
+  SkipListNode* node = Traverse(key, &out_pred_nodes);
+  
+  if (node){
+    for (uint32_t i = 0; i < SKIP_LIST_MAX_LEVEL; i++){
+      pthread_rwlock_unlock(latches + i);
+    }
+    return false;
+  }
   
   SkipListNode* new_node = NewNode(new_tower_height, key, rid);
   for (uint32_t i=0; i<new_tower_height; i++){
     SkipListNode* pred = out_pred_nodes.back();
     out_pred_nodes.pop_back();
-    // if (i >= height){
-    //   pthread_rwlock_rdlock(latches + i);
-    // } else {
-    //   pthread_rwlock_wrlock(latches + i);
-    // }
+
     SkipListNode* next_node = pred->next[i];
     pred->next[i] = new_node;
     new_node->next[i] = next_node;
-    // pthread_rwlock_unlock(latches + i);
   }
+  height = std::max(height, new_tower_height);
+
+  for (uint32_t i = 0; i < SKIP_LIST_MAX_LEVEL; i++){
+    pthread_rwlock_unlock(latches + i);
+  }
+
   return true;
 }
 
@@ -180,14 +181,25 @@ RID SkipList::Search(const char *key) {
   // Return the RID (i.e., payload) if the key is found; otherwise return invalid RID.
   //
   // TODO: Your implementation
+  for (uint32_t i = 0; i < SKIP_LIST_MAX_LEVEL; i++){
+    pthread_rwlock_rdlock(latches + i);
+  }
+
   SkipListNode* node = Traverse(key);
+  
   if (!node){
+    for (uint32_t i = 0; i < SKIP_LIST_MAX_LEVEL; i++){
+      pthread_rwlock_unlock(latches + i);
+    }
     return RID();
   }
-  // uint32_t i = node->nlevels;
-  // pthread_rwlock_rdlock(latches + i);
+
   RID ret = node->rid;
-  // pthread_rwlock_unlock(latches + i);
+
+  for (uint32_t i = 0; i < SKIP_LIST_MAX_LEVEL; i++){
+    pthread_rwlock_unlock(latches + i);
+  }
+
   return ret;
 }
 
@@ -199,18 +211,28 @@ bool SkipList::Update(const char *key, RID rid) {
   // otherwise return false.
   //
   // TODO: Your implementation
+  for (uint32_t i = 0; i < SKIP_LIST_MAX_LEVEL; i++){
+    if (i == 0){
+      pthread_rwlock_wrlock(latches + i);
+    } else {
+      pthread_rwlock_rdlock(latches + i);
+    }
+  }
+
   SkipListNode* node = Traverse(key);
+  
   if (!node){
+    for (uint32_t i = 0; i < SKIP_LIST_MAX_LEVEL; i++){
+      pthread_rwlock_unlock(latches + i);
+    }
     return false;
   }
-  // uint32_t i = node->nlevels;
-  // if (i > 0){
-  //   pthread_rwlock_rdlock(latches + i);
-  // } else {
-  //   pthread_rwlock_wrlock(latches + i);
-  // }
+
   node->rid = rid;
-  // pthread_rwlock_unlock(latches + i);
+
+  for (uint32_t i = 0; i < SKIP_LIST_MAX_LEVEL; i++){
+    pthread_rwlock_unlock(latches + i);
+  }
   return true;
 }
 
@@ -224,34 +246,34 @@ bool SkipList::Delete(const char *key) {
   // Return true if the operation succeeeded, false if the key is not found.
   //
   // TODO: Your implementation
+  for (uint32_t i = 0; i < SKIP_LIST_MAX_LEVEL; i++){
+    pthread_rwlock_wrlock(latches + i);
+  }
+
   std::vector<SkipListNode*> out_pred_nodes;
   SkipListNode* node = Traverse(key, &out_pred_nodes);
+  
   if (!node){
+    for (uint32_t i = 0; i < SKIP_LIST_MAX_LEVEL; i++){
+      pthread_rwlock_unlock(latches + i);
+    }
     return false;
   }
-  SkipListNode* cur = out_pred_nodes.back();
-                                      // LOG(ERROR) << "ಠ_ಠ";
-  // out_pred_nodes.pop_back();
 
-  // pthread_rwlock_wrlock(latches);
+  SkipListNode* cur = out_pred_nodes.back();
   int i = node->nlevels - 1;
   while (i >= 0){
-    // pthread_rwlock_wrlock(latches + i);
-    // pthread_rwlock_rdlock(latches + i);
     if (cur->next[i] == node){
-      // pthread_rwlock_unlock(latches + i);
-      // pthread_rwlock_wrlock(latches + i);
       cur->next[i] = node->next[i];
-      // pthread_rwlock_unlock(latches + i);
       i--;
     } else {
       cur = cur->next[i];
-      // pthread_rwlock_unlock(latches + i);
     }
   }
-  // pthread_rwlock_wrlock(latches);
   free(node);
-  // pthread_rwlock_unlock(latches);
+  for (uint32_t i = 0; i < SKIP_LIST_MAX_LEVEL; i++){
+    pthread_rwlock_unlock(latches + i);
+  }
   return true;
 }
 
@@ -277,28 +299,28 @@ void SkipList::ForwardScan(const char *start_key, uint32_t nkeys, bool inclusive
   if (!out_records || nkeys == 0){
     return;
   }
+  for (uint32_t i = 0; i < SKIP_LIST_MAX_LEVEL; i++){
+    pthread_rwlock_rdlock(latches + i);
+  }
   SkipListNode* cur = Traverse(start_key);
   if (!start_key || !cur){
-    // pthread_rwlock_rdlock(latches);
     cur = head.next[0];
-    // pthread_rwlock_unlock(latches);
   }
-  // if (!inclusive || cur == &head){
+
   if (!inclusive && start_key){
-    // pthread_rwlock_rdlock(latches);
     cur = cur->next[0];
-    // pthread_rwlock_unlock(latches);
   }
   uint32_t i = 0;
   while (cur != &tail && i < nkeys){
     char* key_copy = (char *)malloc(key_size);
-    // pthread_rwlock_rdlock(latches);
     memcpy(key_copy, cur->key, key_size);
     std::pair<char *, RID> p = std::make_pair(key_copy, cur->rid);
     cur = cur->next[0];
-    // pthread_rwlock_unlock(latches);
     out_records->push_back(p);
     i++;
+  }
+  for (uint32_t i = 0; i < SKIP_LIST_MAX_LEVEL; i++){
+    pthread_rwlock_unlock(latches + i);
   }
 }
 
