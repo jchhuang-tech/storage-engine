@@ -115,6 +115,9 @@ class SkipList {
 
   // Current height of the skip list
   uint32_t height;
+
+  // Latches for each level
+  pthread_rwlock_t latches[SKIP_LIST_MAX_LEVEL];
 };
 
 }  // namespace yase
