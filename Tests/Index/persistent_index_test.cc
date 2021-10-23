@@ -35,19 +35,30 @@ class PSkipListTest : public ::testing::Test {
   }
 
   void NewPSkipList(uint32_t key_size) {
-    slist = new PSkipList("pskiplist", key_size);
+                                                              LOG(ERROR);
+    std::string name ("pskiplist");
+    slist = new PSkipList(name, key_size);
+                                                              LOG(ERROR);
   }
 };
 
 // Empty list with pointers properly set up
 TEST_F(PSkipListTest, Init) {
+                                                              LOG(ERROR);
   NewPSkipList(8);
+                                                              LOG(ERROR);
 
   ASSERT_EQ(slist->key_size, 8);
+  PSkipListNode* head_node = (PSkipListNode*) malloc(sizeof(PSkipListNode) + slist->key_size);
+  slist->table.Read(slist->head, head_node);
+  PSkipListNode* tail_node = (PSkipListNode*) malloc(sizeof(PSkipListNode) + slist->key_size);
+  slist->table.Read(slist->tail, tail_node);
   for (uint32_t i = 0; i < SKIP_LIST_MAX_LEVEL; ++i) {
-    ASSERT_EQ(slist->head.next[i], &slist->tail);
-    ASSERT_EQ(slist->tail.next[i], nullptr);
+    ASSERT_EQ(head_node->next[i].value, slist->tail.value);
+    ASSERT_EQ(tail_node->next[i].value, RID().value);
   }
+  free(head_node);
+  free(tail_node);
   ASSERT_EQ(slist->height, 1);
 }
 
@@ -57,9 +68,9 @@ TEST_F(PSkipListTest, NewNodeTooHigh) {
   std::string key("testkey");
 
   // Level greater than max, should fail
-  PSkipListNode *node = slist->NewNode(100, key.c_str(), rid);
-  ASSERT_FALSE(node);
-  free(node);
+  RID node_rid = slist->NewNode(100, key.c_str(), rid);
+  ASSERT_FALSE(node_rid.IsValid());
+  // free(node);
 }
 
 TEST_F(PSkipListTest, NewNode) {
@@ -68,10 +79,12 @@ TEST_F(PSkipListTest, NewNode) {
   std::string key("testkey1");
 
   // This one should succeed
-  PSkipListNode *node = slist->NewNode(4, key.c_str(), rid);
-  ASSERT_TRUE(node);
+  RID node_rid = slist->NewNode(4, key.c_str(), rid);
+  ASSERT_TRUE(node_rid.IsValid());
 
   // Check level and RID
+  PSkipListNode* node = (PSkipListNode*) malloc(sizeof(PSkipListNode) + slist->key_size);
+  slist->table.Read(node_rid, node);
   ASSERT_EQ(node->nlevels, 4);
   ASSERT_EQ(node->rid.value, rid.value);
 
@@ -81,7 +94,7 @@ TEST_F(PSkipListTest, NewNode) {
 
   // Check next pointers
   for (uint32_t i = 0; i < SKIP_LIST_MAX_LEVEL; ++i) {
-    ASSERT_EQ(node->next[i], nullptr);
+    ASSERT_EQ(node->next[i].value, RID().value);
   }
 
   free(node);
@@ -166,28 +179,35 @@ TEST_F(PSkipListTest, SortedList) {
     ASSERT_TRUE(success);
   }
 
-  PSkipListNode *curr = &slist->head;
-  ASSERT_NE(curr->next[0], nullptr);
-  ASSERT_NE(curr->next[0], &slist->tail);
+  RID curr = slist->head;
+  PSkipListNode* curr_node = (PSkipListNode*) malloc(sizeof(PSkipListNode) + slist->key_size);
+  slist->table.Read(curr, curr_node);
+  ASSERT_NE(curr_node->next[0].value, RID().value);
+  ASSERT_NE(curr_node->next[0].value, slist->tail.value);
 
   uint64_t nkeys = 0;
-  curr = curr->next[0];
+  curr = curr_node->next[0];
+  slist->table.Read(curr, curr_node);
   char *prev_key = nullptr;
-  while (curr != &slist->tail) {
+  while (curr.value != slist->tail.value) {
     if (!prev_key) {
       ASSERT_EQ(nkeys, 0);
     } else {
-      int cmp = memcmp(prev_key, curr->key, 8);
+      int cmp = memcmp(prev_key, curr_node->key, 8);
       ASSERT_LE(cmp, 0);
     }
-    prev_key = curr->key;
-    ASSERT_GE(curr->nlevels, 1);
-    curr = curr->next[0];
+    prev_key = curr_node->key;
+    ASSERT_GE(curr_node->nlevels, 1);
+    curr = curr_node->next[0];
+    slist->table.Read(curr, curr_node);
     ++nkeys;
   }
-  ASSERT_EQ(&slist->tail, curr);
-  ASSERT_EQ(slist->tail.next[0], nullptr);
+  PSkipListNode* tail_node = (PSkipListNode*) malloc(sizeof(PSkipListNode) + slist->key_size);
+  ASSERT_EQ(slist->tail.value, curr.value);
+  ASSERT_EQ(tail_node->next[0].value, RID().value);
   ASSERT_EQ(nkeys, kKeys);
+  free(curr_node);
+  free(tail_node);
 }
 
 TEST_F(PSkipListTest, InsertSearchDelete) {
