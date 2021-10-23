@@ -27,13 +27,17 @@ PSkipList::PSkipList(std::string name, uint32_t key_size) : table(name, sizeof(P
   // TODO: Your implementation
   this->key_size = key_size;
   this->height = 1;
-  PSkipListNode* head_node = (PSkipListNode*) malloc(sizeof(PSkipListNode) + key_size);
-  table.Read(head, head_node);
-  PSkipListNode* tail_node = (PSkipListNode*) malloc(sizeof(PSkipListNode) + key_size);
-  table.Read(tail, tail_node);
+  // PSkipListNode* head_node = (PSkipListNode*) malloc(sizeof(PSkipListNode) + key_size);
+  // table.Read(head, head_node);
+  // PSkipListNode* tail_node = (PSkipListNode*) malloc(sizeof(PSkipListNode) + key_size);
+  // table.Read(tail, tail_node);
+  PSkipListNode head_node;
+  head = table.Insert((char*)&head_node);
+  PSkipListNode tail_node;
+  tail = table.Insert((char*)&tail_node);
   for (uint32_t i = 0; i < SKIP_LIST_MAX_LEVEL; i++){
-    head_node->next[i] = tail;
-    tail_node->next[i] = RID();
+    head_node.next[i].value = tail.value;
+    tail_node.next[i].value = RID().value;
     pthread_rwlock_init(latches + i, NULL);
   }
 }

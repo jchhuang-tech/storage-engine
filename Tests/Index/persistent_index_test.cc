@@ -15,6 +15,7 @@
 #include <glog/logging.h>
 #include <gtest/gtest.h>
 
+#include <Storage/buffer_manager.h>
 #include <Index/pskiplist.h>
 
 namespace yase {
@@ -24,29 +25,26 @@ class PSkipListTest : public ::testing::Test {
   PSkipList *slist;
 
   void SetUp() override {
+    yase::BufferManager::Initialize(10);
     slist = nullptr;
   }
 
   void TearDown() override {
+    yase::BufferManager::Uninitialize();
     if (slist) {
       delete slist;
     }
     slist = nullptr;
   }
 
-  void NewPSkipList(uint32_t key_size) {
-                                                              LOG(ERROR);
-    std::string name ("pskiplist");
+  void NewPSkipList(std::string name, uint32_t key_size) {
     slist = new PSkipList(name, key_size);
-                                                              LOG(ERROR);
   }
 };
 
 // Empty list with pointers properly set up
 TEST_F(PSkipListTest, Init) {
-                                                              LOG(ERROR);
-  NewPSkipList(8);
-                                                              LOG(ERROR);
+  NewPSkipList("Pskiplist Init", 8);
 
   ASSERT_EQ(slist->key_size, 8);
   PSkipListNode* head_node = (PSkipListNode*) malloc(sizeof(PSkipListNode) + slist->key_size);
@@ -63,7 +61,7 @@ TEST_F(PSkipListTest, Init) {
 }
 
 TEST_F(PSkipListTest, NewNodeTooHigh) {
-  NewPSkipList(8);
+  NewPSkipList("Pskiplist NewNodeTooHigh", 8);
   RID rid(0xfeedbeef);
   std::string key("testkey");
 
@@ -74,7 +72,7 @@ TEST_F(PSkipListTest, NewNodeTooHigh) {
 }
 
 TEST_F(PSkipListTest, NewNode) {
-  NewPSkipList(8);
+  NewPSkipList("Pskiplist NewNode", 8);
   RID rid(0xfeedbeef);
   std::string key("testkey1");
 
@@ -102,7 +100,7 @@ TEST_F(PSkipListTest, NewNode) {
 
 // Insert one key
 TEST_F(PSkipListTest, SingleInsertSearch) {
-  NewPSkipList(8);
+  NewPSkipList("Pskiplist SingleInsertSearch", 8);
   RID rid(0xfeedbeef);
   std::string key("testkeyk");
 
@@ -116,7 +114,7 @@ TEST_F(PSkipListTest, SingleInsertSearch) {
 
 // Insert an existed key
 TEST_F(PSkipListTest, InsertExisted) {
-  NewPSkipList(8);
+  NewPSkipList("Pskiplist InsertExisted", 8);
   RID rid(0xfeedbeef);
   std::string key("testkeyk");
 
@@ -129,7 +127,7 @@ TEST_F(PSkipListTest, InsertExisted) {
 }
 
 TEST_F(PSkipListTest, SearchNonExist) {
-  NewPSkipList(8);
+  NewPSkipList("Pskiplist SearchNonExist", 8);
   std::string key("11111111");
 
   // Empty, should turn up nothing
@@ -144,7 +142,7 @@ TEST_F(PSkipListTest, SearchNonExist) {
 }
 
 TEST_F(PSkipListTest, Update) {
-  NewPSkipList(8);
+  NewPSkipList("Pskiplist Update", 8);
   std::string key("11111111");
 
   // Empty, should fail
@@ -170,7 +168,7 @@ TEST_F(PSkipListTest, Update) {
 
 // Check all nodes are sorted
 TEST_F(PSkipListTest, SortedList) {
-  NewPSkipList(8);
+  NewPSkipList("Pskiplist SortedList", 8);
   static const uint64_t kKeys = 1024;
 
   for (uint64_t k = 1; k <= kKeys; ++k) {
@@ -211,7 +209,7 @@ TEST_F(PSkipListTest, SortedList) {
 }
 
 TEST_F(PSkipListTest, InsertSearchDelete) {
-  NewPSkipList(8);
+  NewPSkipList("Pskiplist InsertSearchDelete", 8);
 
   // Insert 100 keys
   static const uint64_t kKeys = 100;
@@ -243,7 +241,7 @@ TEST_F(PSkipListTest, InsertSearchDelete) {
 }
 
 TEST_F(PSkipListTest, ForwardScanInclusive) {
-  NewPSkipList(8);
+  NewPSkipList("Pskiplist ForwardScanInclusive", 8);
 
   static const uint64_t kKeys = 200;
   uint64_t start_key = 1;
@@ -272,7 +270,7 @@ TEST_F(PSkipListTest, ForwardScanInclusive) {
 }
 
 TEST_F(PSkipListTest, ForwardScanNonInclusive) {
-  NewPSkipList(8);
+  NewPSkipList("Pskiplist ForwardScanNonInclusive", 8);
 
   static const uint64_t kKeys = 6;
   for (uint64_t i = 1; i <= kKeys; ++i) {
@@ -322,7 +320,7 @@ void InsertSearch(uint32_t thread_id, yase::PSkipList *slist) {
 // New tests with four threads inserting non-overlapping keys
 TEST_F(PSkipListTest, ConcurrentInsertSearch) {
   // Initialize a skip list that supports 8-byte key
-  NewPSkipList(8);
+  NewPSkipList("Pskiplist ConcurrentInsertSearch", 8);
 
   static const uint32_t kThreads = 4;
   std::vector<std::thread *> threads;
@@ -340,7 +338,7 @@ TEST_F(PSkipListTest, ConcurrentInsertSearch) {
 // Long keys
 TEST_F(PSkipListTest, LongKeys) {
   // 20-byte keys
-  NewPSkipList(20);
+  NewPSkipList("Pskiplist LongKeys", 20);
 
   auto insert = [&](uint32_t thread_id, PSkipList *slist) {
     static const uint64_t kKeys = 100;
