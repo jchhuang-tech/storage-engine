@@ -12,6 +12,7 @@
 #include <gtest/gtest_prod.h>
 
 #include "../yase_internal.h"
+#include <Storage/table.h>
 
 namespace yase {
 
@@ -115,6 +116,12 @@ class PSkipList {
 
   // Current height of the skip list
   uint32_t height;
+
+  // The Table/File that will be backing the persistent skip list
+  Table table;
+  
+  // Latches for each level
+  pthread_rwlock_t latches[SKIP_LIST_MAX_LEVEL];
 };
 
 }  // namespace yase
