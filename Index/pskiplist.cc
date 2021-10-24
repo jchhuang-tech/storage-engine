@@ -35,49 +35,30 @@ PSkipList::PSkipList(std::string name, uint32_t key_size) : table(name, sizeof(P
   head = table.Insert((char*)&head_node);
   PSkipListNode tail_node;
   tail = table.Insert((char*)&tail_node);
-  LOG(ERROR) << head.value;
-  LOG(ERROR) << tail.value;
   for (uint32_t i = 0; i < SKIP_LIST_MAX_LEVEL; i++){
     head_node.next[i].value = tail.value;
-                                          LOG(ERROR) << head_node.next[i].value;
     tail_node.next[i].value = RID().value;
-                                          LOG(ERROR) << tail_node.next[i].value;
     pthread_rwlock_init(latches + i, NULL);
   }
   table.Update(head, (char*)&head_node);
-                                          LOG(ERROR) << head.value;
   table.Update(tail, (char*)&tail_node);
-                                          LOG(ERROR) << tail.value;
 }
 
 PSkipList::~PSkipList() {
   // Deallocate all the towers allocated in memory and destroy latches
   //
   // TODO: Your implementation
-                                          LOG(ERROR);
-  RID cur_rid;
-                                          LOG(ERROR);
-  cur_rid.value = head.value;
-                                          LOG(ERROR);
+  RID cur_rid = head;
   PSkipListNode* cur = (PSkipListNode*) malloc(sizeof(PSkipListNode) + key_size);
-                                          LOG(ERROR) << cur_rid.value;
   table.Read(cur_rid, cur);
-                                          LOG(ERROR);
   while (cur_rid.IsValid()){
-    if (cur_rid.value == head.value || cur_rid.value == tail.value){
-                                          LOG(ERROR) << cur_rid.value;
-                                          LOG(ERROR) << cur->next[0].value;
-      cur_rid.value = cur->next[0].value;
-                                          LOG(ERROR) << cur_rid.value;
-                                          LOG(ERROR) << cur->next[0].value;
-      table.Read(cur_rid, cur);
-      continue;
-    }
     RID old = cur_rid;
     cur_rid = cur->next[0];
     table.Read(cur_rid, cur);
     table.Delete(old);
   }
+
+  free(cur);
 
   for (uint32_t i = 0; i < SKIP_LIST_MAX_LEVEL; i++){
     pthread_rwlock_destroy(latches + i);
@@ -106,7 +87,7 @@ RID PSkipList::NewNode(uint32_t levels, const char *key, RID rid) {
     node->next[i] = RID();
   }
   RID node_rid = table.Insert((char*)node);
-
+  free(node);
   return node_rid;
 }
 
@@ -122,9 +103,14 @@ RID PSkipList::Traverse(const char *key, std::vector<RID> *out_pred_nodes) {
   // TODO: Your implementation
   int i = SKIP_LIST_MAX_LEVEL - 1;
   RID cur_rid = head;
+  PSkipListNode* cur = (PSkipListNode*) malloc(sizeof(PSkipListNode) + key_size);
+  table.Read(cur_rid, cur);
   RID pred_rid = cur_rid; // POTENTIAL BUGS HERE!
+
+  PSkipListNode* next = (PSkipListNode*) malloc(sizeof(PSkipListNode) + key_size);
+  table.Read(cur->next[i], next);
+
   while (cur_rid.value != tail.value){
-    PSkipListNode* cur = (PSkipListNode*) malloc(sizeof(PSkipListNode) + key_size);
     table.Read(cur_rid, cur);
     if (memcmp(cur->key, key, key_size) == 0 && cur_rid.value != head.value){ // cur key == key
       if (out_pred_nodes){
@@ -132,7 +118,6 @@ RID PSkipList::Traverse(const char *key, std::vector<RID> *out_pred_nodes) {
       }
       return cur_rid;
     } 
-    PSkipListNode* next = (PSkipListNode*) malloc(sizeof(PSkipListNode) + key_size);
     table.Read(cur->next[i], next);
     if (memcmp(next->key, key, key_size) > 0 || cur->next[i].value == tail.value){ // next key > key
       if (out_pred_nodes){
@@ -198,23 +183,36 @@ bool PSkipList::Insert(const char *key, RID rid) {
   RID new_node_rid = NewNode(new_tower_height, key, rid);
   PSkipListNode* new_node = (PSkipListNode*) malloc(sizeof(PSkipListNode) + key_size);
   table.Read(new_node_rid, new_node);
+
+  PSkipListNode* pred = (PSkipListNode*) malloc(sizeof(PSkipListNode) + key_size);
+
+  PSkipListNode* next_node = (PSkipListNode*) malloc(sizeof(PSkipListNode) + key_size);
+
   for (uint32_t i=0; i<new_tower_height; i++){
     RID pred_rid = out_pred_nodes.back();
     out_pred_nodes.pop_back();
-
-    PSkipListNode* pred = (PSkipListNode*) malloc(sizeof(PSkipListNode) + key_size);
     table.Read(pred_rid, pred);
+
+    // PSkipListNode* pred = (PSkipListNode*) malloc(sizeof(PSkipListNode) + key_size);
     RID next_node_rid = pred->next[i];
-    PSkipListNode* next_node = (PSkipListNode*) malloc(sizeof(PSkipListNode) + key_size);
+    // PSkipListNode* next_node = (PSkipListNode*) malloc(sizeof(PSkipListNode) + key_size);
     table.Read(next_node_rid, next_node);
+
     pred->next[i] = new_node_rid;
+    // table.Update(pred_rid, (char*)pred);
+
     new_node->next[i] = next_node_rid;
+    // table.Update(new_node_rid, (char*)new_node);
   }
   height = std::max(height, new_tower_height);
 
   for (uint32_t i = 0; i < SKIP_LIST_MAX_LEVEL; i++){
     pthread_rwlock_unlock(latches + i);
   }
+
+  free(new_node);
+  free(pred);
+  free(next_node);
 
   return true;
 }

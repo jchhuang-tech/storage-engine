@@ -58,7 +58,6 @@ TEST_F(PSkipListTest, Init) {
   free(head_node);
   free(tail_node);
   ASSERT_EQ(slist->height, 1);
-                                          LOG(ERROR);
 }
 
 TEST_F(PSkipListTest, NewNodeTooHigh) {
