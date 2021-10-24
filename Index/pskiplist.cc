@@ -276,6 +276,7 @@ bool PSkipList::Update(const char *key, RID rid) {
   }
 
   node->rid = rid;
+  table.Update(node_rid, (char*)node);
 
   for (uint32_t i = 0; i < SKIP_LIST_MAX_LEVEL; i++){
     pthread_rwlock_unlock(latches + i);
@@ -327,6 +328,8 @@ bool PSkipList::Delete(const char *key) {
   for (uint32_t i = 0; i < SKIP_LIST_MAX_LEVEL; i++){
     pthread_rwlock_unlock(latches + i);
   }
+  free(node);
+  free(cur);
   return true;
 }
 
