@@ -386,6 +386,7 @@ void PSkipList::ForwardScan(const char *start_key, uint32_t nkeys, bool inclusiv
   for (uint32_t i = 0; i < SKIP_LIST_MAX_LEVEL; i++){
     pthread_rwlock_unlock(latches + i);
   }
+  free(cur);
 }
 
 }  // namespace yase
