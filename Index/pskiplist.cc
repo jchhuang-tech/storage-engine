@@ -199,10 +199,10 @@ bool PSkipList::Insert(const char *key, RID rid) {
     table.Read(next_node_rid, next_node);
 
     pred->next[i] = new_node_rid;
-    // table.Update(pred_rid, (char*)pred);
+    table.Update(pred_rid, (char*)pred);
 
     new_node->next[i] = next_node_rid;
-    // table.Update(new_node_rid, (char*)new_node);
+    table.Update(new_node_rid, (char*)new_node);
   }
   height = std::max(height, new_tower_height);
 
@@ -242,6 +242,8 @@ RID PSkipList::Search(const char *key) {
   for (uint32_t i = 0; i < SKIP_LIST_MAX_LEVEL; i++){
     pthread_rwlock_unlock(latches + i);
   }
+
+  free(node);
 
   return ret;
 }
@@ -314,6 +316,7 @@ bool PSkipList::Delete(const char *key) {
   while (i >= 0){
     if (cur->next[i].value == node_rid.value){
       cur->next[i] = node->next[i];
+      table.Update(cur_rid, (char*)cur);
       i--;
     } else {
       cur_rid = cur->next[i];
