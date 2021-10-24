@@ -201,6 +201,7 @@ TEST_F(PSkipListTest, SortedList) {
     ++nkeys;
   }
   PSkipListNode* tail_node = (PSkipListNode*) malloc(sizeof(PSkipListNode) + slist->key_size);
+  slist->table.Read(slist->tail, tail_node);
   ASSERT_EQ(slist->tail.value, curr.value);
   ASSERT_EQ(tail_node->next[0].value, RID().value);
   ASSERT_EQ(nkeys, kKeys);
