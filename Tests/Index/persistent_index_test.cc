@@ -30,11 +30,11 @@ class PSkipListTest : public ::testing::Test {
   }
 
   void TearDown() override {
-    yase::BufferManager::Uninitialize();
     if (slist) {
       delete slist;
     }
     slist = nullptr;
+    yase::BufferManager::Uninitialize();
   }
 
   void NewPSkipList(std::string name, uint32_t key_size) {
