@@ -112,14 +112,14 @@ RID PSkipList::Traverse(const char *key, std::vector<RID> *out_pred_nodes) {
 
   while (cur_rid.value != tail.value){
     table.Read(cur_rid, cur);
-    if (memcmp(cur->key, key, key_size) == 0 && cur_rid.value != head.value){ // cur key == key
+    if (cur_rid.value != head.value && memcmp(cur->key, key, key_size) == 0){ // cur key == key
       if (out_pred_nodes){
         out_pred_nodes->push_back(pred_rid);
       }
       return cur_rid;
     } 
     table.Read(cur->next[i], next);
-    if (memcmp(next->key, key, key_size) > 0 || cur->next[i].value == tail.value){ // next key > key
+    if (cur->next[i].value == tail.value || memcmp(next->key, key, key_size) > 0){ // next key > key
       if (out_pred_nodes){
         out_pred_nodes->push_back(cur_rid);
       }

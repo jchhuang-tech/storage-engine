@@ -91,13 +91,13 @@ SkipListNode *SkipList::Traverse(const char *key, std::vector<SkipListNode*> *ou
   SkipListNode* cur = &head;
   SkipListNode* pred = cur; // POTENTIAL BUGS HERE!
   while (cur != &tail){
-    if (memcmp(cur->key, key, key_size) == 0 && cur != &head){ // cur key == key
+    if (cur != &head && memcmp(cur->key, key, key_size) == 0){ // cur key == key
       if (out_pred_nodes){
         out_pred_nodes->push_back(pred);
       }
       return cur;
     } 
-    if (memcmp(cur->next[i]->key, key, key_size) > 0 || cur->next[i] == &tail){ // next key > key
+    if (cur->next[i] == &tail || memcmp(cur->next[i]->key, key, key_size) > 0){ // next key > key
       if (out_pred_nodes){
         out_pred_nodes->push_back(cur);
       }
