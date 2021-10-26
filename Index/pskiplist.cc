@@ -27,10 +27,7 @@ PSkipList::PSkipList(std::string name, uint32_t key_size) : table(name, sizeof(P
   // TODO: Your implementation
   this->key_size = key_size;
   this->height = 1;
-  // PSkipListNode* head_node = (PSkipListNode*) malloc(sizeof(PSkipListNode) + key_size);
-  // table.Read(head, head_node);
-  // PSkipListNode* tail_node = (PSkipListNode*) malloc(sizeof(PSkipListNode) + key_size);
-  // table.Read(tail, tail_node);
+
   PSkipListNode head_node;
   head = table.Insert((char*)&head_node);
   PSkipListNode tail_node;
@@ -102,6 +99,8 @@ RID PSkipList::Traverse(const char *key, std::vector<RID> *out_pred_nodes) {
       if (out_pred_nodes){
         out_pred_nodes->push_back(pred_rid);
       }
+      free(cur);
+      free(next);
       return cur_rid;
     } 
     table.Read(cur->next[i], next);
@@ -113,6 +112,8 @@ RID PSkipList::Traverse(const char *key, std::vector<RID> *out_pred_nodes) {
         // go down, repeat
         i--;
       } else {
+        free(cur);
+        free(next);
         return RID();
       }
     } else if (memcmp(next->key, key, key_size) <= 0){ // next key <= key
@@ -121,6 +122,8 @@ RID PSkipList::Traverse(const char *key, std::vector<RID> *out_pred_nodes) {
       cur_rid = cur->next[i];
     }
   }
+  free(cur);
+  free(next);
   return RID();
 }
 
@@ -258,6 +261,7 @@ bool PSkipList::Update(const char *key, RID rid) {
     for (uint32_t i = 0; i < SKIP_LIST_MAX_LEVEL; i++){
       pthread_rwlock_unlock(latches + i);
     }
+    free(node);
     return false;
   }
 
@@ -267,6 +271,7 @@ bool PSkipList::Update(const char *key, RID rid) {
   for (uint32_t i = 0; i < SKIP_LIST_MAX_LEVEL; i++){
     pthread_rwlock_unlock(latches + i);
   }
+  free(node);
   return true;
 }
 
@@ -293,6 +298,7 @@ bool PSkipList::Delete(const char *key) {
     for (uint32_t i = 0; i < SKIP_LIST_MAX_LEVEL; i++){
       pthread_rwlock_unlock(latches + i);
     }
+    free(node);
     return false;
   }
 
@@ -355,12 +361,14 @@ void PSkipList::ForwardScan(const char *start_key, uint32_t nkeys, bool inclusiv
 
     cur_rid = head_node->next[0];
     table.Read(cur_rid, cur);
+    free(head_node);
   } else if (!cur_rid.IsValid()){
     PSkipListNode* pred = (PSkipListNode*) malloc(sizeof(PSkipListNode) + key_size);
     table.Read(out_pred_nodes.back(), pred);
     
     cur_rid = pred->next[0];
     table.Read(cur_rid, cur);
+    free(pred);
   } else if (!inclusive){
     cur_rid = cur->next[0];
     table.Read(cur_rid, cur);
