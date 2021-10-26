@@ -302,14 +302,16 @@ void SkipList::ForwardScan(const char *start_key, uint32_t nkeys, bool inclusive
   for (uint32_t i = 0; i < SKIP_LIST_MAX_LEVEL; i++){
     pthread_rwlock_rdlock(latches + i);
   }
-  SkipListNode* cur = Traverse(start_key);
-  if (!start_key || !cur){
+  std::vector<SkipListNode*> out_pred_nodes;
+  SkipListNode* cur = Traverse(start_key, &out_pred_nodes);
+  if (!start_key){
     cur = head.next[0];
-  }
-
-  if (!inclusive && start_key){
+  } else if (!cur){
+    cur = out_pred_nodes.back()->next[0];
+  } else if (!inclusive){
     cur = cur->next[0];
   }
+
   uint32_t i = 0;
   while (cur != &tail && i < nkeys){
     char* key_copy = (char *)malloc(key_size);
