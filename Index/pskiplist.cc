@@ -344,21 +344,28 @@ void PSkipList::ForwardScan(const char *start_key, uint32_t nkeys, bool inclusiv
   for (uint32_t i = 0; i < SKIP_LIST_MAX_LEVEL; i++){
     pthread_rwlock_rdlock(latches + i);
   }
-  RID cur_rid = Traverse(start_key);
+  std::vector<RID> out_pred_nodes;
+  RID cur_rid = Traverse(start_key, &out_pred_nodes);
   PSkipListNode* cur = (PSkipListNode*) malloc(sizeof(PSkipListNode) + key_size);
   table.Read(cur_rid, cur);
-  if (!start_key || !cur_rid.IsValid()){
+
+  if (!start_key){
     PSkipListNode* head_node = (PSkipListNode*) malloc(sizeof(PSkipListNode) + key_size);
     table.Read(head, head_node);
 
     cur_rid = head_node->next[0];
     table.Read(cur_rid, cur);
-  }
-
-  if (!inclusive && start_key){
+  } else if (!cur_rid.IsValid()){
+    PSkipListNode* pred = (PSkipListNode*) malloc(sizeof(PSkipListNode) + key_size);
+    table.Read(out_pred_nodes.back(), pred);
+    
+    cur_rid = pred->next[0];
+    table.Read(cur_rid, cur);
+  } else if (!inclusive){
     cur_rid = cur->next[0];
     table.Read(cur_rid, cur);
   }
+
   uint32_t i = 0;
   while (cur_rid.value != tail.value && i < nkeys){
     char* key_copy = (char *)malloc(key_size);
