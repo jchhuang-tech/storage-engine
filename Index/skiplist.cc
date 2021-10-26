@@ -10,8 +10,8 @@
 
 #include <random>
 #include "skiplist.h"
-#include <cmath>
-#include <utility>
+// #include <cmath>
+// #include <utility>
 
 
 namespace yase {
@@ -66,6 +66,10 @@ SkipListNode *SkipList::NewNode(uint32_t levels, const char *key, RID rid) {
     return nullptr;
   }
 
+  if (!key){
+    return nullptr;
+  }
+
   SkipListNode* node = (SkipListNode*) malloc(sizeof(SkipListNode) + key_size);
   new (node) SkipListNode(levels, rid);
   memcpy(node->key, key, key_size);
@@ -87,6 +91,9 @@ SkipListNode *SkipList::Traverse(const char *key, std::vector<SkipListNode*> *ou
   // is Read() or Update for which the predecessor nodes won't be useful.
   //
   // TODO: Your implementation
+  if (!key){
+    return nullptr;
+  }
   int i = SKIP_LIST_MAX_LEVEL - 1;
   SkipListNode* cur = &head;
   SkipListNode* pred = cur; // POTENTIAL BUGS HERE!
@@ -128,6 +135,10 @@ bool SkipList::Insert(const char *key, RID rid) {
   //    (c) return true/false to indicate a successful/failed insert
   //
   // TODO: Your implementation
+  if (!key){
+    return false;
+  }
+
   std::random_device rd;
   std::mt19937 gen(rd()); 
   // std::uniform_int_distribution<> rand(0, pow(2, SKIP_LIST_MAX_LEVEL) - 1);
@@ -160,6 +171,9 @@ bool SkipList::Insert(const char *key, RID rid) {
   
   SkipListNode* new_node = NewNode(new_tower_height, key, rid);
   for (uint32_t i=0; i<new_tower_height; i++){
+    if (out_pred_nodes.empty()){
+      break;
+    }
     SkipListNode* pred = out_pred_nodes.back();
     out_pred_nodes.pop_back();
 
@@ -181,6 +195,9 @@ RID SkipList::Search(const char *key) {
   // Return the RID (i.e., payload) if the key is found; otherwise return invalid RID.
   //
   // TODO: Your implementation
+  if (!key){
+    return RID();
+  }
   for (uint32_t i = 0; i < SKIP_LIST_MAX_LEVEL; i++){
     pthread_rwlock_rdlock(latches + i);
   }
@@ -211,6 +228,10 @@ bool SkipList::Update(const char *key, RID rid) {
   // otherwise return false.
   //
   // TODO: Your implementation
+  if (!key){
+    return false;
+  }
+
   for (uint32_t i = 0; i < SKIP_LIST_MAX_LEVEL; i++){
     if (i == 0){
       pthread_rwlock_wrlock(latches + i);
@@ -246,6 +267,10 @@ bool SkipList::Delete(const char *key) {
   // Return true if the operation succeeeded, false if the key is not found.
   //
   // TODO: Your implementation
+  if (!key){
+    return false;
+  }
+
   for (uint32_t i = 0; i < SKIP_LIST_MAX_LEVEL; i++){
     pthread_rwlock_wrlock(latches + i);
   }
