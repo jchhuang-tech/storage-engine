@@ -48,23 +48,9 @@ PSkipList::~PSkipList() {
   // Deallocate all the towers allocated in memory and destroy latches
   //
   // TODO: Your implementation
-  RID cur_rid = head;
-  PSkipListNode* cur = (PSkipListNode*) malloc(sizeof(PSkipListNode) + key_size);
-  table.Read(cur_rid, cur);
-  while (cur_rid.IsValid()){
-    RID old = cur_rid;
-    cur_rid = cur->next[0];
-    table.Read(cur_rid, cur);
-    table.Delete(old);
-  }
-
-  free(cur);
-
   for (uint32_t i = 0; i < SKIP_LIST_MAX_LEVEL; i++){
     pthread_rwlock_destroy(latches + i);
   }
-
-  // delete table;
 }
 
 RID PSkipList::NewNode(uint32_t levels, const char *key, RID rid) {
