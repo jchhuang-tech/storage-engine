@@ -15,9 +15,7 @@ namespace yase {
 Table::Table(std::string name, uint32_t record_size)
   : table_name(name), file(name, record_size), record_size(record_size) {
   // Allocate a new page for the table
-  latch.lock();
   next_free_pid = file.AllocatePage();
-  latch.unlock();
 }
 
 RID Table::Insert(const char *record) {
