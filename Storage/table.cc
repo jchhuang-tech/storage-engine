@@ -25,7 +25,6 @@ RID Table::Insert(const char *record) {
   auto *bm = BufferManager::Get();
 
 retry:
-                                                                    LOG(ERROR);
   PageId pid = next_free_pid;
   Page *p = bm->PinPage(pid);
   if (!p){
@@ -39,11 +38,9 @@ retry:
     return RID();
   }
   uint32_t slot = 0;
-                                                                    LOG(ERROR);
   if (!dp->Insert(record, slot)) {
     latch.lock();
     if (next_free_pid.value != pid.value) {
-                                                                    LOG(ERROR);
       p->Unlatch();
       bm->UnpinPage(p);
       latch.unlock();
@@ -54,16 +51,13 @@ retry:
     next_free_pid = file.AllocatePage();
     if (!next_free_pid.IsValid()) {
       // Probably no space - return invalid RID
-                                                                    LOG(ERROR);
       latch.unlock();
       return RID();
     }
-                                                                    LOG(ERROR);
     latch.unlock();
     goto retry;
   }
 
-                                                                    LOG(ERROR);
   p->SetDirty(true);
   p->Unlatch();
   bm->UnpinPage(p);
