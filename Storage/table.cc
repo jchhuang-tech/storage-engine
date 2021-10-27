@@ -44,16 +44,20 @@ retry:
       bm->UnpinPage(p);
       goto retry;
     }
-    latch.unlock();
-    p->Unlatch();
-    bm->UnpinPage(p);
+    // latch.unlock();
+    // p->Unlatch();
+    // bm->UnpinPage(p);
     next_free_pid = file.AllocatePage();
     if (!next_free_pid.IsValid()) {
       // Probably no space - return invalid RID
-      // latch.unlock();
+      latch.unlock();
+      p->Unlatch();
+      bm->UnpinPage(p);
       return RID();
     }
-    // latch.unlock();
+    latch.unlock();
+    p->Unlatch();
+    bm->UnpinPage(p);
     goto retry;
   }
 
