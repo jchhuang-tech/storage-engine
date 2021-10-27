@@ -24,9 +24,6 @@ BufferManager::BufferManager(uint32_t page_count) {
   latch.lock();
   this->page_count = page_count;
   page_frames = (Page*)calloc(page_count, sizeof(Page));
-  // page_frames = (Page*)malloc(page_count * sizeof(Page));
-  // memset(page_frames, 0, page_count * sizeof(Page));
-  // page_frames = new Page();
   for (unsigned int i=0; i<page_count; i++){
     // new (page_frames + i) Page();
     Page* initialized_page = new (page_frames + i) Page();
@@ -144,7 +141,7 @@ Page* BufferManager::PinPage(PageId page_id) {
     }
     page_buffer->Latch();
     page_map[page_id] = page_buffer;
-    page_buffer->pin_count = 1;
+    page_buffer->IncPinCount();
     page_buffer->page_id = page_id;
     page_buffer->Unlatch();
     latch.unlock();
