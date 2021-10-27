@@ -87,11 +87,8 @@ Page* BufferManager::PinPage(PageId page_id) {
     pinned_page->IncPinCount();
 
     // if the page is in the LRU queue, remove it from the queue
-    std::list<Page*>::iterator page_it = std::find(lru_queue.begin(), lru_queue.end(), pinned_page);
+    lru_queue.remove(pinned_page);
     pinned_page->Unlatch();
-    if (page_it != lru_queue.end()){
-      lru_queue.erase(page_it);
-    }
     latch.unlock();
 
     return pinned_page;
