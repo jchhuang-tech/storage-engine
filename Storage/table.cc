@@ -39,14 +39,14 @@ retry:
   if (!dp->Insert(record, slot)) {
     latch.lock();
     if (next_free_pid.value != pid.value) {
+      latch.unlock();
       p->Unlatch();
       bm->UnpinPage(p);
-      latch.unlock();
       goto retry;
     }
+    latch.unlock();
     p->Unlatch();
     bm->UnpinPage(p);
-    latch.unlock();
     next_free_pid = file.AllocatePage();
     if (!next_free_pid.IsValid()) {
       // Probably no space - return invalid RID
