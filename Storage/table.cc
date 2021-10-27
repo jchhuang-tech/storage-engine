@@ -37,11 +37,11 @@ retry:
   }
   uint32_t slot = 0;
   if (!dp->Insert(record, slot)) {
-    latch.lock();
+    // latch.lock();
     if (next_free_pid.value != pid.value) {
       p->Unlatch();
       bm->UnpinPage(p);
-      latch.unlock();
+      // latch.unlock();
       goto retry;
     }
     p->Unlatch();
@@ -49,10 +49,10 @@ retry:
     next_free_pid = file.AllocatePage();
     if (!next_free_pid.IsValid()) {
       // Probably no space - return invalid RID
-      latch.unlock();
+      // latch.unlock();
       return RID();
     }
-    latch.unlock();
+    // latch.unlock();
     goto retry;
   }
 
