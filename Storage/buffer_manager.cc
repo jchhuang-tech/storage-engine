@@ -42,17 +42,15 @@ BufferManager::~BufferManager() {
 
   for (unsigned int i=0; i<page_count; i++){
     Page* page = page_frames + i;
-    page->latch.lock();
+    page->Latch();
     if (page->IsDirty()){
       PageId page_id = page->GetPageId();
-      // page->latch.unlock();
       uint16_t bf_id = page_id.GetFileID();
-      // page->latch.lock();
       file_map[bf_id]->FlushPage(page_id, page->page_data);
       page->SetDirty(false);
-      page->latch.unlock();
+      page->Unlatch();
     } else {
-      page->latch.unlock();
+      page->Unlatch();
     }
   }
   free(page_frames);
@@ -76,55 +74,42 @@ Page* BufferManager::PinPage(PageId page_id) {
   //
   // 3. Errors such as invalid page IDs should be handled. If there is any error
   //    at any step, return nullptr.
+  LOG_IF(ERROR, lru_queue.size() < 5) << "THERE ARE " << lru_queue.size() << " FREE PAGE FRAMES IN THE BUFFER POOL";
   bool ret = false;
   if (!page_id.IsValid()){
     return nullptr;
   }
-  // LOG(ERROR) << "PinPage 1";
 
   latch.lock();
   if (page_map.count(page_id)){ // if page_id is in page_map (the buffer pool)
     Page* pinned_page = page_map[page_id];
-    // LOG(ERROR) << "PinPage 2";
-    // latch.unlock();
     if (!pinned_page) {
       latch.unlock();
       return nullptr;
     }
-    // LOG(ERROR) << "PinPage 3";
-    pinned_page->latch.lock();
+    pinned_page->Latch();
     pinned_page->IncPinCount();
-    // pinned_page->latch.unlock();
 
     // if the page is in the LRU queue, remove it from the queue
-    // latch.lock();
-    // pinned_page->latch.lock();
-    // LOG(ERROR) << "PinPage 4";
     std::list<Page*>::iterator page_it = std::find(lru_queue.begin(), lru_queue.end(), pinned_page);
-    pinned_page->latch.unlock();
-    // LOG(ERROR) << "PinPage 5";
+    pinned_page->Unlatch();
     if (page_it != lru_queue.end()){
       lru_queue.erase(page_it);
     }
-    // LOG(ERROR) << "PinPage 6";
     latch.unlock();
 
     return pinned_page;
 
   } else { // if page_id is not in page_map (the buffer pool)
-    // latch.unlock();
     Page* page_buffer = nullptr;
-    // latch.lock();
-    // LOG(ERROR) << "PinPage 7";
+    LOG_IF(ERROR, lru_queue.size() < 5) << "THERE ARE " << lru_queue.size() << " FREE PAGE FRAMES IN THE BUFFER POOL";
     if (page_map.size() >= page_count) { // if the buffer pool is full, evict a page, and load the new page into that page frame
-      // LOG(ERROR) << "PinPage 8";
       page_buffer = EvictPage();
       if (!page_buffer){
         latch.unlock();
         return nullptr;
       }
     } else { // if the buffer pool is not full, find an empty page frame in it, and load the new page into that page
-      // // LOG(ERROR) << "PinPage 18";
       // for (unsigned int i=0; i<page_count; i++){
       //   if (page_frames[i].GetPinCount() == 0){
       //     page_buffer = page_frames + i;
@@ -138,45 +123,33 @@ Page* BufferManager::PinPage(PageId page_id) {
         latch.unlock();
         return nullptr;
       }
-      // LOG(ERROR) << "PinPage 19";
       page_buffer = lru_queue.front();
-      // LOG(ERROR) << "PinPage 20";
       lru_queue.pop_front();
-      // LOG(ERROR) << "PinPage 21";
-      // latch.unlock();
       if (!page_buffer) {
         latch.unlock();
         return nullptr;
       }
     }
 
-    // LOG(ERROR) << "PinPage 22";
+    LOG_IF(ERROR, lru_queue.size() < 5) << "THERE ARE " << lru_queue.size() << " FREE PAGE FRAMES IN THE BUFFER POOL";
     uint16_t bf_id = page_id.GetFileID();
-    // latch.lock();
-    // LOG(ERROR) << "PinPage 23";
     BaseFile* bf = file_map[bf_id];
     if (!bf){
       latch.unlock();
       return nullptr;
     }
-    // LOG(ERROR) << "PinPage 24";
-    // latch.unlock();
-    page_buffer->latch.lock();
+    page_buffer->Latch();
     ret = bf->LoadPage(page_id, page_buffer->page_data);
-    // // LOG(ERROR) << "PinPage 25";
-    page_buffer->latch.unlock();
+    page_buffer->Unlatch();
     if (!ret){
       latch.unlock();
       return nullptr;
     }
-    page_buffer->latch.lock();
-    // latch.lock();
+    page_buffer->Latch();
     page_map[page_id] = page_buffer;
-    // LOG(ERROR) << "PinPage 26";
     page_buffer->pin_count = 1;
     page_buffer->page_id = page_id;
-    page_buffer->latch.unlock();
-    // LOG(ERROR) << "PinPage 27";
+    page_buffer->Unlatch();
     latch.unlock();
     
     return page_buffer;
@@ -193,20 +166,19 @@ void BufferManager::UnpinPage(Page *page) {
   // 2. The page should be added to the LRU queue when its pin count becomes 0.
   //
   // Note: you may assume page is non-null.
+  LOG_IF(ERROR, lru_queue.size() < 5) << "THERE ARE " << lru_queue.size() << " FREE PAGE FRAMES IN THE BUFFER POOL";
   if (!page){
     return;
   }
   latch.lock();
-  page->latch.lock();
+  page->Latch();
   page->DecPinCount();
   if (page->pin_count == 0){
-    // page->latch.unlock();
-    // latch.lock();
     lru_queue.push_back(page);
-    // latch.unlock();
   }
-  page->latch.unlock();
+  page->Unlatch();
   latch.unlock();
+  LOG_IF(ERROR, lru_queue.size() < 5) << "THERE ARE " << lru_queue.size() << " FREE PAGE FRAMES IN THE BUFFER POOL";
 }
 
 void BufferManager::RegisterFile(BaseFile *bf) {
@@ -219,51 +191,31 @@ void BufferManager::RegisterFile(BaseFile *bf) {
 Page* BufferManager::EvictPage() {
   bool ret = false;
   if (lru_queue.empty()) {
-    // latch.unlock();
     return nullptr;
   }
-  // LOG(ERROR) << "EvictPage 1";
   Page* evicted_page = lru_queue.front();
-  // LOG(ERROR) << "EvictPage 2";
   lru_queue.pop_front();
-  // latch.unlock();
   if (!evicted_page) {
-    // latch.unlock();
     return nullptr;
   }
-  // LOG(ERROR) << "EvictPage 3";
-  evicted_page->latch.lock();
+  evicted_page->Latch();
   PageId evicted_page_id = evicted_page->GetPageId();
-  // LOG(ERROR) << "EvictPage 4";
   if (!evicted_page_id.IsValid()){
-    evicted_page->latch.unlock();
-    // latch.unlock();
+    evicted_page->Unlatch();
     return nullptr;
   }
-  // evicted_page->latch.unlock();
-  // LOG(ERROR) << "EvictPage 5";
   uint16_t evicted_bf_id = evicted_page_id.GetFileID();
-  // evicted_page->latch.lock();
-  // LOG(ERROR) << "EvictPage 6";
   if (evicted_page->IsDirty()){
-    // latch.lock();
-    // // LOG(ERROR) << "EvictPage 7";
     ret = file_map[evicted_bf_id]->FlushPage(evicted_page_id, evicted_page->page_data);
     evicted_page->SetDirty(false);
-    // latch.unlock();
-    evicted_page->latch.unlock();
+    evicted_page->Unlatch();
     if (!ret){
-      // latch.unlock();
       return nullptr;
     }
   } else {
-    evicted_page->latch.unlock();
+    evicted_page->Unlatch();
   }
-  // latch.lock();
-  // LOG(ERROR) << "EvictPage 8";
   page_map.erase(evicted_page_id);
-  // latch.unlock();
-  // LOG(ERROR) << "EvictPage 9";
   return evicted_page; // we are going to load the new page in here
 }
 
