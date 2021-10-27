@@ -28,40 +28,38 @@ retry:
   if (!p){
     return RID();
   }
-  p->latch.lock();
+  p->Latch();
   DataPage *dp = p->GetDataPage();
   if (!dp){
+    p->Unlatch();
+    bm->UnpinPage(p);
     return RID();
   }
-  // p->latch.unlock();
   uint32_t slot = 0;
-  // p->latch.lock();
   if (!dp->Insert(record, slot)) {
-    // p->latch.unlock();
     latch.lock();
     if (next_free_pid.value != pid.value) {
       latch.unlock();
-      p->latch.unlock();
+      p->Unlatch();
       bm->UnpinPage(p);
       goto retry;
     }
-    // latch.unlock();
     next_free_pid = file.AllocatePage();
     if (!next_free_pid.IsValid()) {
       // Probably no space - return invalid RID
       latch.unlock();
-      p->latch.unlock();
+      p->Unlatch();
       bm->UnpinPage(p);
       return RID();
     }
     latch.unlock();
-    p->latch.unlock();
+    p->Unlatch();
     bm->UnpinPage(p);
     goto retry;
   }
 
   p->SetDirty(true);
-  p->latch.unlock();
+  p->Unlatch();
   bm->UnpinPage(p);
 
   // Mark the slot allocation in directory page
@@ -72,16 +70,14 @@ retry:
   if (!p) {
     return RID();
   }
-  p->latch.lock();
+  p->Latch();
   DirectoryPage *dirp = p->GetDirPage();
-  // p->latch.unlock();
 
   uint32_t idx = next_free_pid.GetPageNum() % entries_per_dir_page;
   LOG_IF(FATAL, dirp->entries[idx].free_slots == 0);
-  // p->latch.lock();
   --dirp->entries[idx].free_slots;
   p->SetDirty(true);
-  p->latch.unlock();
+  p->Unlatch();
   bm->UnpinPage(p);
   return RID(next_free_pid, slot);
 }
@@ -98,11 +94,11 @@ bool Table::Read(RID rid, void *out_buf) {
   if (!p) {
     return false;
   }
-  p->latch.lock();
+  p->Latch();
 
   DataPage *dp = p->GetDataPage();
   bool success = dp->Read(rid, out_buf);
-  p->latch.unlock();
+  p->Unlatch();
   bm->UnpinPage(p);
   return success;
 }
@@ -117,14 +113,14 @@ bool Table::Delete(RID rid) {
   if (!p) {
     return false;
   }
-  p->latch.lock();
+  p->Latch();
 
   DataPage *dp = p->GetDataPage();
   bool success = dp->Delete(rid);
   if (success) {
     p->SetDirty(true);
   }
-  p->latch.unlock();
+  p->Unlatch();
   bm->UnpinPage(p);
 
   if (success) {
@@ -136,13 +132,13 @@ bool Table::Delete(RID rid) {
     if (!p) {
       return false;
     }
-    p->latch.lock();
+    p->Latch();
     DirectoryPage *dirp = p->GetDirPage();
 
     uint32_t idx = rid.GetPageId().GetPageNum() % entries_per_dir_page;
     ++dirp->entries[idx].free_slots;
     p->SetDirty(true);
-    p->latch.unlock();
+    p->Unlatch();
     bm->UnpinPage(p);
   }
 
@@ -159,14 +155,14 @@ bool Table::Update(RID rid, const char *record) {
   if (!p) {
     return false;
   }
-  p->latch.lock();
+  p->Latch();
 
   DataPage *dp = p->GetDataPage();
   bool success = dp->Update(rid, record);
   if (success) {
     p->SetDirty(true);
   }
-  p->latch.unlock();
+  p->Unlatch();
   bm->UnpinPage(p);
   return success;
 }
