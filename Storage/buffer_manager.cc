@@ -74,7 +74,6 @@ Page* BufferManager::PinPage(PageId page_id) {
   //
   // 3. Errors such as invalid page IDs should be handled. If there is any error
   //    at any step, return nullptr.
-  LOG_IF(ERROR, lru_queue.size() < 5) << "THERE ARE " << lru_queue.size() << " FREE PAGE FRAMES IN THE BUFFER POOL";
   bool ret = false;
   if (!page_id.IsValid()){
     return nullptr;
@@ -102,7 +101,6 @@ Page* BufferManager::PinPage(PageId page_id) {
 
   } else { // if page_id is not in page_map (the buffer pool)
     Page* page_buffer = nullptr;
-    LOG_IF(ERROR, lru_queue.size() < 5) << "THERE ARE " << lru_queue.size() << " FREE PAGE FRAMES IN THE BUFFER POOL";
     if (page_map.size() >= page_count) { // if the buffer pool is full, evict a page, and load the new page into that page frame
       page_buffer = EvictPage();
       if (!page_buffer){
@@ -131,7 +129,6 @@ Page* BufferManager::PinPage(PageId page_id) {
       }
     }
 
-    LOG_IF(ERROR, lru_queue.size() < 5) << "THERE ARE " << lru_queue.size() << " FREE PAGE FRAMES IN THE BUFFER POOL";
     uint16_t bf_id = page_id.GetFileID();
     BaseFile* bf = file_map[bf_id];
     if (!bf){
@@ -166,7 +163,6 @@ void BufferManager::UnpinPage(Page *page) {
   // 2. The page should be added to the LRU queue when its pin count becomes 0.
   //
   // Note: you may assume page is non-null.
-  LOG_IF(ERROR, lru_queue.size() < 5) << "THERE ARE " << lru_queue.size() << " FREE PAGE FRAMES IN THE BUFFER POOL";
   if (!page){
     return;
   }
@@ -178,7 +174,6 @@ void BufferManager::UnpinPage(Page *page) {
   }
   page->Unlatch();
   latch.unlock();
-  LOG_IF(ERROR, lru_queue.size() < 5) << "THERE ARE " << lru_queue.size() << " FREE PAGE FRAMES IN THE BUFFER POOL";
 }
 
 void BufferManager::RegisterFile(BaseFile *bf) {
