@@ -48,8 +48,8 @@ retry:
     p->Unlatch();
     bm->UnpinPage(p);
 
-    latch.lock();
     next_free_pid = file.AllocatePage();
+    latch.lock();
     if (!next_free_pid.IsValid()) {
       // Probably no space - return invalid RID
       latch.unlock();
