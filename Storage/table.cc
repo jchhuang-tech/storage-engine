@@ -37,19 +37,16 @@ retry:
   }
   uint32_t slot = 0;
   if (!dp->Insert(record, slot)) {
-    latch.lock();
-    if (next_free_pid.value != pid.value) {
-      latch.unlock();
-      p->Unlatch();
-      bm->UnpinPage(p);
-      goto retry;
-    }
-    latch.unlock();
     p->Unlatch();
     bm->UnpinPage(p);
 
-    PageId new_page_pid = file.AllocatePage();
     latch.lock();
+    if (next_free_pid.value != pid.value) {
+      latch.unlock();
+      goto retry;
+    }
+
+    PageId new_page_pid = file.AllocatePage();
     next_free_pid = new_page_pid;
     if (!next_free_pid.IsValid()) {
       // Probably no space - return invalid RID
