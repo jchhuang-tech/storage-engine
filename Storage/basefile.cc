@@ -80,7 +80,7 @@ PageId BaseFile::CreatePage() {
   pid = PageId(file_id, page_count.fetch_add(1));
   // pid = PageId(file_id, page_count.fetch_add(1, std::memory_order_relaxed));
   unsigned char buffer[PAGE_SIZE] = {0};
-  std::memcpy(buffer, &(pid.value), sizeof(pid.value));
+  //std::memcpy(buffer, &(pid.value), sizeof(pid.value));
   if (!FlushPage(pid, buffer)){
     return PageId();
   }
