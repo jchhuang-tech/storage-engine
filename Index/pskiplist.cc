@@ -91,7 +91,7 @@ RID PSkipList::Traverse(const char *key, std::vector<RID> *out_pred_nodes) {
   if (!key){
     return RID();
   }
-  int i = SKIP_LIST_MAX_LEVEL - 1;
+  uint32_t i = SKIP_LIST_MAX_LEVEL - 1;
   RID cur_rid = head;
   PSkipListNode* cur = (PSkipListNode*) malloc(sizeof(PSkipListNode) + key_size);
   table.Read(cur_rid, cur);
@@ -328,12 +328,16 @@ bool PSkipList::Delete(const char *key) {
   RID cur_rid = out_pred_nodes.back();
   PSkipListNode* cur = (PSkipListNode*) malloc(sizeof(PSkipListNode) + key_size);
   table.Read(cur_rid, cur);
-  int i = node->nlevels - 1;
+  uint32_t i = node->nlevels - 1;
   while (i >= 0){
     if (cur->next[i].value == node_rid.value){
       cur->next[i] = node->next[i];
       table.Update(cur_rid, (char*)cur);
-      i--;
+      if (i > 0){
+        i--;
+      } else {
+        break;
+      }
     } else {
       cur_rid = cur->next[i];
       table.Read(cur_rid, cur);
@@ -398,7 +402,7 @@ void PSkipList::ForwardScan(const char *start_key, uint32_t nkeys, bool inclusiv
   }
 
   uint32_t i = 0;
-  while (cur_rid.value != tail.value && i < nkeys){
+  while (cur_rid.value != tail.value && cur_rid.IsValid() && i < nkeys){
     char* key_copy = (char *)malloc(key_size);
     memcpy(key_copy, cur->key, key_size);
     std::pair<char *, RID> p = std::make_pair(key_copy, cur->rid);

@@ -94,7 +94,7 @@ SkipListNode *SkipList::Traverse(const char *key, std::vector<SkipListNode*> *ou
   if (!key){
     return nullptr;
   }
-  int i = SKIP_LIST_MAX_LEVEL - 1;
+  uint32_t i = SKIP_LIST_MAX_LEVEL - 1;
   SkipListNode* cur = &head;
   SkipListNode* pred = cur; // POTENTIAL BUGS HERE!
   while (cur != &tail){
@@ -286,11 +286,15 @@ bool SkipList::Delete(const char *key) {
   }
 
   SkipListNode* cur = out_pred_nodes.back();
-  int i = node->nlevels - 1;
+  uint32_t i = node->nlevels - 1;
   while (i >= 0){
     if (cur->next[i] == node){
       cur->next[i] = node->next[i];
-      i--;
+      if (i > 0){
+        i--;
+      } else {
+        break;
+      }
     } else {
       cur = cur->next[i];
     }
@@ -338,7 +342,7 @@ void SkipList::ForwardScan(const char *start_key, uint32_t nkeys, bool inclusive
   }
 
   uint32_t i = 0;
-  while (cur != &tail && i < nkeys){
+  while (cur != &tail && cur && i < nkeys){
     char* key_copy = (char *)malloc(key_size);
     memcpy(key_copy, cur->key, key_size);
     std::pair<char *, RID> p = std::make_pair(key_copy, cur->rid);
