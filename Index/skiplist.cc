@@ -342,7 +342,7 @@ void SkipList::ForwardScan(const char *start_key, uint32_t nkeys, bool inclusive
   }
 
   uint32_t i = 0;
-  while (cur != &tail && cur && i < nkeys){
+  while (cur != &tail && cur && cur != &head && i < nkeys){
     char* key_copy = (char *)malloc(key_size);
     memcpy(key_copy, cur->key, key_size);
     std::pair<char *, RID> p = std::make_pair(key_copy, cur->rid);
