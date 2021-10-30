@@ -67,7 +67,7 @@ RID PSkipList::NewNode(uint32_t levels, const char *key, RID rid) {
   }
 
   PSkipListNode* node = (PSkipListNode*) malloc(sizeof(PSkipListNode) + key_size);
-  new (node) PSkipListNode(levels, rid);
+  PSkipListNode* new_node = new (node) PSkipListNode(levels, rid);
   memcpy(node->key, key, key_size);
 
   for (uint32_t i = 0; i < SKIP_LIST_MAX_LEVEL; i++) {
@@ -75,6 +75,7 @@ RID PSkipList::NewNode(uint32_t levels, const char *key, RID rid) {
   }
   RID node_rid = table.Insert((char*)node);
   free(node);
+  new_node->~PSkipListNode();
   return node_rid;
 }
 
