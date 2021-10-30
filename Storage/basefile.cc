@@ -26,7 +26,7 @@ BaseFile::BaseFile(std::string name) {
   //   }
   //
   // TODO: Your implementation
-  file_id = next_file_id.fetch_add(1, std::memory_order_relaxed);
+  file_id = next_file_id.fetch_add(1);
 
   page_count = 0;
 
