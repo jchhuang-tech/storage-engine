@@ -1,3 +1,5 @@
 add_subdirectory(Dummy)
 add_subdirectory(Storage)
 add_subdirectory(Index)
+add_subdirectory(Lock)
+add_subdirectory(Log)
