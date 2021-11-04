@@ -10,7 +10,7 @@
 
 #include <random>
 #include "skiplist.h"
-// #include <cmath>
+#include <cmath>
 // #include <utility>
 
 
@@ -141,15 +141,8 @@ bool SkipList::Insert(const char *key, RID rid) {
 
   std::random_device rd;
   std::mt19937 gen(rd()); 
-  // std::uniform_int_distribution<> rand(0, pow(2, SKIP_LIST_MAX_LEVEL) - 1);
-  // uint32_t new_tower_height = rand(gen);
-  std::uniform_int_distribution<> rand(0, 1);
-  uint32_t new_tower_height = 1;
-  while (rand(gen) != 0 && new_tower_height < SKIP_LIST_MAX_LEVEL){
-    new_tower_height++;
-  }
-  // uint32_t new_tower_height = ffz(random() & ((1UL << SKIP_LIST_MAX_LEVEL) - 1)); // source: CMPT 454 lecture notes 
-  // // LOG(ERROR) << "new tower height: " << new_tower_height;
+  std::uniform_int_distribution<> rand(0, pow(2, SKIP_LIST_MAX_LEVEL) - 1);
+  uint32_t new_tower_height = 1 + __builtin_ctz(rand(gen) & ((1UL << SKIP_LIST_MAX_LEVEL) - 1));
 
   for (uint32_t i = 0; i < SKIP_LIST_MAX_LEVEL; i++){
     if (i >= new_tower_height){
@@ -342,7 +335,7 @@ void SkipList::ForwardScan(const char *start_key, uint32_t nkeys, bool inclusive
   }
 
   uint32_t i = 0;
-  while (cur != &tail && cur && i < nkeys){
+  while (cur != &tail && cur && cur != &head && i < nkeys){
     char* key_copy = (char *)malloc(key_size);
     memcpy(key_copy, cur->key, key_size);
     std::pair<char *, RID> p = std::make_pair(key_copy, cur->rid);
