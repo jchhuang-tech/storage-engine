@@ -46,8 +46,7 @@ retry:
       goto retry;
     }
 
-    PageId new_page_pid = file.AllocatePage();
-    next_free_pid = new_page_pid;
+    next_free_pid = file.AllocatePage();
     if (!next_free_pid.IsValid()) {
       // Probably no space - return invalid RID
       latch.unlock();
@@ -63,7 +62,7 @@ retry:
 
   // Mark the slot allocation in directory page
   static uint32_t entries_per_dir_page = PAGE_SIZE / sizeof(DirectoryPage::Entry);
-  uint32_t dir_page_num = (next_free_pid.GetPageNum() / entries_per_dir_page);
+  uint32_t dir_page_num = (pid.GetPageNum() / entries_per_dir_page);
   PageId dir_pid(file.GetDir()->GetId(), dir_page_num);
   p = bm->PinPage(dir_pid);
   if (!p) {
@@ -72,13 +71,13 @@ retry:
   p->Latch();
   DirectoryPage *dirp = p->GetDirPage();
 
-  uint32_t idx = next_free_pid.GetPageNum() % entries_per_dir_page;
+  uint32_t idx = pid.GetPageNum() % entries_per_dir_page;
   LOG_IF(FATAL, dirp->entries[idx].free_slots == 0);
   --dirp->entries[idx].free_slots;
   p->SetDirty(true);
   p->Unlatch();
   bm->UnpinPage(p);
-  return RID(next_free_pid, slot);
+  return RID(pid, slot);
 }
 
 bool Table::Read(RID rid, void *out_buf) {
