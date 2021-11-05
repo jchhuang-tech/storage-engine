@@ -78,11 +78,12 @@ bool LockManager::AcquireLock(Transaction *tx, RID &rid, LockRequest::Mode mode)
     LockRequest* pred_req = &lock_head->requests.back();
     lock_head->requests.emplace_back(tx, mode, false);
 
-    if (pred_req->mode == LockRequest::SH || pred_req->mode == LockRequest::NL){
+    if (pred_req->mode == LockRequest::SH && pred_req->granted){
       lock_head->requests.back().granted = true;
+      tx->locks.push_back(rid);
       lock_head->latch.unlock();
       return true;
-    } else {
+    } else if (pred_req->mode == LockRequest::XL){
       if (ddl_policy == WaitDie) {
         LockRequest* cur_req = &lock_head->requests.back();
         if (cur_req->requester->timestamp < pred_req->requester->timestamp) { // higher priority than predecessor
@@ -96,16 +97,16 @@ bool LockManager::AcquireLock(Transaction *tx, RID &rid, LockRequest::Mode mode)
       } else if (ddl_policy == NoWait) {
         lock_head->latch.unlock();
         return false;
-      } else { // this doesn't happen
-        lock_head->latch.unlock();
-        return false;
       }
     }
+    lock_head->latch.unlock();
+    return false;
   } else { // doesn't exist in table
     struct LockHead* lock_head = new LockHead();
     lock_head->latch.lock();
     lock_head->current_mode = mode;
     lock_head->requests.emplace_back(tx, mode, true);
+    tx->locks.push_back(rid);
     lock_table[rid.value] = lock_head;
     lock_head->latch.unlock();
     latch.unlock();
@@ -129,7 +130,43 @@ bool LockManager::ReleaseLock(Transaction *tx, RID &rid) {
   // 3. Return true only if the release operation succeeded.
   //
   // TODO: Your implementation
-  return false;
+  latch.lock();
+  if (lock_table.count(rid.value) == 0){
+    latch.unlock();
+    return false;
+  }
+  struct LockHead* lock_head = lock_table[rid.value];
+  latch.unlock();
+  lock_head->latch.lock();
+  if (lock_head->current_mode == LockRequest::NL){
+    lock_head->latch.unlock();
+    return false;
+  }
+  std::list<LockRequest>::iterator it;
+  for (it = lock_head->requests.begin(); it != lock_head->requests.end(); it++){
+    if (it->requester == tx){
+      struct LockRequest* cur_req = &(*it);
+      std::list<LockRequest>::iterator next_it = std::next(it, 1);
+      struct LockRequest* next_req = &(*next_it);
+      if (cur_req->granted){
+        next_req->granted = true;
+      }
+      lock_head->requests.erase(it);
+    }
+  }
+  lock_head->latch.unlock();
+  std::list<RID>::iterator tx_it;
+  for (tx_it = tx->locks.begin(); tx_it != tx->locks.end(); tx_it++){
+    if (tx_it->value == rid.value){
+      tx->locks.erase(tx_it);
+    }
+  }
+  return true;
+ 
+  
+  // lock_head->latch.unlock();
+
+  // return false;
 }
 
 bool Transaction::Commit() {
