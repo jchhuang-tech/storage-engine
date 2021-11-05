@@ -22,6 +22,7 @@ LockManager::LockManager(DeadlockPolicy policy) {
   // Initialize the lock manager with the specified deadlock handling policy
   //
   // TODO: Your implementation
+  ddl_policy = policy;
 }
 
 LockManager::~LockManager() {
@@ -31,6 +32,9 @@ LockManager::~LockManager() {
   // there is no lock holders. You may follow either approach.
   //
   // TODO: Your implementation
+  // for (auto i : lock_table){
+  //   delete (i.second);
+  // }
 }
 
 bool LockManager::AcquireLock(Transaction *tx, RID &rid, LockRequest::Mode mode) {
@@ -62,6 +66,52 @@ bool LockManager::AcquireLock(Transaction *tx, RID &rid, LockRequest::Mode mode)
   // reference to clarify the steps needed for this function.
   //
   // TODO: Your implementation
+  latch.lock();
+  if (lock_table.count(rid.value)){
+    latch.unlock();
+    struct LockHead* lock_head = lock_table[rid.value];
+    lock_head->latch.lock();
+    // if (lock_head->requests.empty()){
+    //   lock_head->requests.emplace_back(tx, mode, true);
+    //   return true;
+    // }
+    LockRequest* pred_req = &lock_head->requests.back();
+    lock_head->requests.emplace_back(tx, mode, false);
+
+    if (pred_req->mode == LockRequest::SH || pred_req->mode == LockRequest::NL){
+      lock_head->requests.back().granted = true;
+      lock_head->latch.unlock();
+      return true;
+    } else {
+      if (ddl_policy == WaitDie) {
+        LockRequest* cur_req = &lock_head->requests.back();
+        if (cur_req->requester->timestamp < pred_req->requester->timestamp) { // higher priority than predecessor
+          lock_head->latch.unlock();
+          return false;
+        } else { // lower priority
+          lock_head->requests.pop_back();
+          lock_head->latch.unlock();
+          return false;
+        }
+      } else if (ddl_policy == NoWait) {
+        lock_head->latch.unlock();
+        return false;
+      } else { // this doesn't happen
+        lock_head->latch.unlock();
+        return false;
+      }
+    }
+  } else { // doesn't exist in table
+    struct LockHead* lock_head = new LockHead();
+    lock_head->latch.lock();
+    lock_head->current_mode = mode;
+    lock_head->requests.emplace_back(tx, mode, true);
+    lock_table[rid.value] = lock_head;
+    lock_head->latch.unlock();
+    latch.unlock();
+    return true;
+  }
+
   return false;
 }
 
