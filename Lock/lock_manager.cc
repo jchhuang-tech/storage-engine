@@ -32,9 +32,9 @@ LockManager::~LockManager() {
   // there is no lock holders. You may follow either approach.
   //
   // TODO: Your implementation
-  // for (auto i : lock_table){
-  //   delete (i.second);
-  // }
+  for (auto i : lock_table){
+    delete (i.second);
+  }
 }
 
 bool LockManager::AcquireLock(Transaction *tx, RID &rid, LockRequest::Mode mode) {
@@ -83,17 +83,23 @@ bool LockManager::AcquireLock(Transaction *tx, RID &rid, LockRequest::Mode mode)
       return pred_req->granted;
     }
 
-    if (pred_req->mode == LockRequest::SH && pred_req->granted){
+    LockRequest* cur_req = &lock_head->requests.back();
+    if (pred_req->mode == LockRequest::SH && pred_req->granted && cur_req->mode == LockRequest::SH){
       lock_head->requests.back().granted = true;
       tx->locks.push_back(rid);
       lock_head->latch.unlock();
       return true;
-    } else if (pred_req->mode == LockRequest::XL){
+    } else if (pred_req->mode == LockRequest::XL || cur_req->mode == LockRequest::XL){
       if (ddl_policy == WaitDie) {
-        LockRequest* cur_req = &lock_head->requests.back();
+        // LockRequest* cur_req = &lock_head->requests.back();
         if (cur_req->requester->timestamp < pred_req->requester->timestamp) { // higher priority than predecessor
           lock_head->latch.unlock();
-          return false;
+          // while (pred_req && pred_req->granted){
+          while (!cur_req->granted){
+            
+          }
+          return true;
+          // return false;
         } else { // lower priority
           lock_head->requests.pop_back();
           lock_head->latch.unlock();
