@@ -71,32 +71,35 @@ bool LockManager::AcquireLock(Transaction *tx, RID &rid, LockRequest::Mode mode)
     latch.unlock();
     struct LockHead* lock_head = lock_table[rid.value];
     lock_head->latch.lock();
-    // if (lock_head->requests.empty()){
-    //   lock_head->requests.emplace_back(tx, mode, true);
-    //   return true;
-    // }
-    LockRequest* pred_req = &lock_head->requests.back();
-    lock_head->requests.emplace_back(tx, mode, false);
-    if (pred_req->requester == tx && pred_req->mode == mode) {
-      lock_head->requests.pop_back();
+    if (lock_head->requests.empty()){
+      lock_head->requests.emplace_back(tx, mode, true);
       lock_head->latch.unlock();
-      return pred_req->granted;
+      return true;
+    }
+    for (auto const& i : lock_head->requests) {
+      if (i.requester == tx && i.mode == mode){
+        lock_head->latch.unlock();
+        return i.granted;
+      }
     }
 
+    LockRequest* pred_req = &lock_head->requests.back();
+    lock_head->requests.emplace_back(tx, mode, false);
     LockRequest* cur_req = &lock_head->requests.back();
     if (pred_req->mode == LockRequest::SH && pred_req->granted && cur_req->mode == LockRequest::SH){
-      lock_head->requests.back().granted = true;
+      cur_req->granted = true;
       tx->locks.push_back(rid);
       lock_head->latch.unlock();
       return true;
     } else if (pred_req->mode == LockRequest::XL || cur_req->mode == LockRequest::XL){
       if (ddl_policy == WaitDie) {
-        // LockRequest* cur_req = &lock_head->requests.back();
         if (cur_req->requester->timestamp < pred_req->requester->timestamp) { // higher priority than predecessor
           lock_head->latch.unlock();
           // while (pred_req && pred_req->granted){
+          // satrt_time = time_now
           while (!cur_req->granted){
-            
+            // if curr_time - start_time > 10s
+            // return false;
           }
           return true;
           // return false;
