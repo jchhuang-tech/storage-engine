@@ -77,6 +77,11 @@ bool LockManager::AcquireLock(Transaction *tx, RID &rid, LockRequest::Mode mode)
     // }
     LockRequest* pred_req = &lock_head->requests.back();
     lock_head->requests.emplace_back(tx, mode, false);
+    if (pred_req->requester == tx && pred_req->mode == mode) {
+      lock_head->requests.pop_back();
+      lock_head->latch.unlock();
+      return pred_req->granted;
+    }
 
     if (pred_req->mode == LockRequest::SH && pred_req->granted){
       lock_head->requests.back().granted = true;
@@ -152,21 +157,22 @@ bool LockManager::ReleaseLock(Transaction *tx, RID &rid) {
         next_req->granted = true;
       }
       lock_head->requests.erase(it);
+      break; // erasing the iterator invalidates the iterator so we need to break
     }
   }
+  if (lock_head->requests.empty()){
+    lock_head->current_mode = LockRequest::NL;
+  }
+  
   lock_head->latch.unlock();
   std::list<RID>::iterator tx_it;
   for (tx_it = tx->locks.begin(); tx_it != tx->locks.end(); tx_it++){
     if (tx_it->value == rid.value){
       tx->locks.erase(tx_it);
+      break;
     }
   }
   return true;
- 
-  
-  // lock_head->latch.unlock();
-
-  // return false;
 }
 
 bool Transaction::Commit() {
