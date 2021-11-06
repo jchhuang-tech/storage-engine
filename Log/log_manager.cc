@@ -42,7 +42,8 @@ LogManager::~LogManager() {
   // any).
   //
   // TODO: Your implementation.
-  ssize_t ret = pwrite(fd, logbuf, logbuf_size, logbuf_offset); // not sure about this
+  ssize_t ret;
+  // ssize_t ret = pwrite(fd, logbuf, logbuf_size, logbuf_offset); // not sure about this
   LOG_IF(FATAL, ret < 0) << "error";
 
   ret = fsync(fd);
@@ -55,6 +56,13 @@ LogManager::~LogManager() {
 
 bool LogManager::LogInsert(RID rid, const char *record, uint32_t length) {
   // TODO: Your implementation.
+  // if (sizeof(LogRecord) + length > logbuf_size){
+
+  // }
+  struct LogRecord* log_record = (struct LogRecord*)malloc(sizeof(LogRecord) + length);
+  new (log_record) LogRecord(rid.value, LogRecord::Insert, length);
+  memcpy(log_record->payload, record, length);
+  memcpy(logbuf, log_record, sizeof(LogRecord) + length);
   return false;
 }
 
