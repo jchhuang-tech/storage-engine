@@ -26,6 +26,15 @@ LogManager::LogManager(const char *log_filename, uint32_t logbuf_kb) {
   // 4. Any error here is fatal.
   //
   // TODO: Your implementation.
+  int ret = open(log_filename, (O_CREAT | O_RDWR | O_TRUNC), (S_IRWXU | S_IRWXG | S_IRWXO));
+  LOG_IF(FATAL, ret < 0) << "error: open failed";
+  fd = ret;
+  logbuf_size = logbuf_kb * 1024;
+  logbuf = (char*)malloc(logbuf_size);
+  logbuf_offset = 0;
+
+  durable_lsn = 0;
+  current_lsn = 0;
 };
 
 LogManager::~LogManager() {
@@ -33,10 +42,27 @@ LogManager::~LogManager() {
   // any).
   //
   // TODO: Your implementation.
+  ssize_t ret;
+  // ssize_t ret = pwrite(fd, logbuf, logbuf_size, logbuf_offset); // not sure about this
+  LOG_IF(FATAL, ret < 0) << "error";
+
+  ret = fsync(fd);
+  LOG_IF(FATAL, ret < 0) << "error";
+  
+  free(logbuf);
+  ret = close(fd);
+  LOG_IF(FATAL, ret < 0) << "error";
 }
 
 bool LogManager::LogInsert(RID rid, const char *record, uint32_t length) {
   // TODO: Your implementation.
+  // if (sizeof(LogRecord) + length > logbuf_size){
+
+  // }
+  struct LogRecord* log_record = (struct LogRecord*)malloc(sizeof(LogRecord) + length);
+  new (log_record) LogRecord(rid.value, LogRecord::Insert, length);
+  memcpy(log_record->payload, record, length);
+  memcpy(logbuf, log_record, sizeof(LogRecord) + length);
   return false;
 }
 

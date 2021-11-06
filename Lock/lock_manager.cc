@@ -22,6 +22,7 @@ LockManager::LockManager(DeadlockPolicy policy) {
   // Initialize the lock manager with the specified deadlock handling policy
   //
   // TODO: Your implementation
+  ddl_policy = policy;
 }
 
 LockManager::~LockManager() {
@@ -31,6 +32,9 @@ LockManager::~LockManager() {
   // there is no lock holders. You may follow either approach.
   //
   // TODO: Your implementation
+  for (auto i : lock_table){
+    delete i.second;
+  }
 }
 
 bool LockManager::AcquireLock(Transaction *tx, RID &rid, LockRequest::Mode mode) {
@@ -62,7 +66,72 @@ bool LockManager::AcquireLock(Transaction *tx, RID &rid, LockRequest::Mode mode)
   // reference to clarify the steps needed for this function.
   //
   // TODO: Your implementation
-  return false;
+  if (mode == LockRequest::NL){
+    return true;
+  }
+
+  latch.lock();
+  if (lock_table.count(rid.value)){
+    latch.unlock();
+    struct LockHead* lock_head = lock_table[rid.value];
+    lock_head->latch.lock();
+    if (lock_head->requests.empty()){
+      lock_head->requests.emplace_back(tx, mode, true);
+      lock_head->current_mode = mode;
+      lock_head->latch.unlock();
+      tx->locks.push_back(rid);
+      return true;
+    }
+    for (auto const& i : lock_head->requests) {
+      if (i.requester == tx && (i.mode == mode || i.mode == LockRequest::XL)){
+        lock_head->latch.unlock();
+        return i.granted;
+      }
+    }
+
+    LockRequest* pred_req = &lock_head->requests.back();
+    lock_head->requests.emplace_back(tx, mode, false);
+    LockRequest* cur_req = &lock_head->requests.back();
+    if (pred_req->granted && pred_req->mode != LockRequest::XL && cur_req->mode != LockRequest::XL){
+      cur_req->granted = true;
+      lock_head->current_mode = mode;
+      lock_head->latch.unlock();
+      tx->locks.push_back(rid);
+      return true;
+    } else {
+      if (ddl_policy == WaitDie) {
+        if (cur_req->requester->timestamp < pred_req->requester->timestamp) { // higher priority than predecessor
+          lock_head->latch.unlock();
+          while (!cur_req->granted){
+            // busy wait
+          }
+          lock_head->latch.lock();
+          lock_head->current_mode = mode;
+          lock_head->latch.unlock();
+          tx->locks.push_back(rid);
+          return true;
+        } else { // lower priority
+          lock_head->requests.pop_back();
+          lock_head->latch.unlock();
+          return false;
+        }
+      } else {
+        lock_head->requests.pop_back();
+        lock_head->latch.unlock();
+        return false;
+      }
+    }
+  } else { // doesn't exist in table
+    struct LockHead* lock_head = new LockHead();
+    lock_head->latch.lock();
+    lock_head->requests.emplace_back(tx, mode, true);
+    lock_head->current_mode = mode;
+    tx->locks.push_back(rid);
+    lock_table[rid.value] = lock_head;
+    lock_head->latch.unlock();
+    latch.unlock();
+    return true;
+  }
 }
 
 bool LockManager::ReleaseLock(Transaction *tx, RID &rid) {
@@ -79,7 +148,54 @@ bool LockManager::ReleaseLock(Transaction *tx, RID &rid) {
   // 3. Return true only if the release operation succeeded.
   //
   // TODO: Your implementation
-  return false;
+  latch.lock();
+  if (lock_table.count(rid.value) == 0){
+    latch.unlock();
+    return false;
+  }
+  struct LockHead* lock_head = lock_table[rid.value];
+  latch.unlock();
+  lock_head->latch.lock();
+  if (lock_head->current_mode == LockRequest::NL){
+    lock_head->latch.unlock();
+    return false;
+  }
+  for (auto cur_it = lock_head->requests.begin(); cur_it != lock_head->requests.end(); cur_it++){
+    if (cur_it->requester == tx){
+      auto next_it = std::next(cur_it, 1);
+      if (next_it != lock_head->requests.end()){
+        if (cur_it->mode == LockRequest::XL && next_it->mode == LockRequest::XL){
+          next_it->granted = true;
+        } else if (cur_it->mode == LockRequest::XL && next_it->mode == LockRequest::SH){
+          for (auto it2 = next_it; it2 != lock_head->requests.end(); it2++){
+            if (it2->mode == LockRequest::XL){
+              break;
+            } else {
+              it2->granted = true;
+            }
+          }
+        } else if (cur_it->mode == LockRequest::SH && next_it->mode == LockRequest::XL){
+          if (cur_it == lock_head->requests.begin()){
+            next_it->granted = true;
+          }
+        }
+      }
+      lock_head->requests.erase(cur_it);
+      break; // erasing the iterator invalidates the iterator so we need to break
+    }
+  }
+  if (lock_head->requests.empty()){
+    lock_head->current_mode = LockRequest::NL;
+  }
+  
+  lock_head->latch.unlock();
+  for (auto tx_it = tx->locks.begin(); tx_it != tx->locks.end(); tx_it++){
+    if (tx_it->value == rid.value){
+      tx->locks.erase(tx_it);
+      break;
+    }
+  }
+  return true;
 }
 
 bool Transaction::Commit() {
@@ -88,7 +204,12 @@ bool Transaction::Commit() {
   // 3. Set transaction state to "committed" and return true
   //
   // TODO: Your implementation
-  return false;
+  while (!locks.empty()){
+    LockManager::Get()->ReleaseLock(this, *locks.begin());
+  }
+  state = kStateCommitted;
+  return true;
+  // return false;
 }
 
 uint64_t Transaction::Abort() {
@@ -98,7 +219,15 @@ uint64_t Transaction::Abort() {
   // 4. Return the transaction's timestamp
   //
   // TODO: Your implementation
-  return 0;
+  // for (auto it = locks.begin(); it != locks.end(); it++){
+  //   LockManager::Get()->ReleaseLock(this, *it);
+  // }
+  while (!locks.empty()){
+    LockManager::Get()->ReleaseLock(this, *locks.begin());
+  }
+  state = kStateAborted;
+  return timestamp;
+  // return 0;
 }
 
 }  // namespace yase
