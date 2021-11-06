@@ -190,7 +190,12 @@ bool Transaction::Commit() {
   // 3. Set transaction state to "committed" and return true
   //
   // TODO: Your implementation
-  return false;
+  while (!locks.empty()){
+    LockManager::Get()->ReleaseLock(this, *locks.begin());
+  }
+  state = kStateCommitted;
+  return true;
+  // return false;
 }
 
 uint64_t Transaction::Abort() {
@@ -200,7 +205,15 @@ uint64_t Transaction::Abort() {
   // 4. Return the transaction's timestamp
   //
   // TODO: Your implementation
-  return 0;
+  // for (auto it = locks.begin(); it != locks.end(); it++){
+  //   LockManager::Get()->ReleaseLock(this, *it);
+  // }
+  while (!locks.empty()){
+    LockManager::Get()->ReleaseLock(this, *locks.begin());
+  }
+  state = kStateAborted;
+  return timestamp;
+  // return 0;
 }
 
 }  // namespace yase
