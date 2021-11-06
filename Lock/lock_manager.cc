@@ -163,20 +163,21 @@ bool LockManager::ReleaseLock(Transaction *tx, RID &rid) {
   for (auto cur_it = lock_head->requests.begin(); cur_it != lock_head->requests.end(); cur_it++){
     if (cur_it->requester == tx){
       auto next_it = std::next(cur_it, 1);
-
-      if (cur_it->mode == LockRequest::XL && next_it->mode == LockRequest::XL){
-        next_it->granted = true;
-      } else if (cur_it->mode == LockRequest::XL && next_it->mode == LockRequest::SH){
-        for (auto it2 = next_it; it2 != lock_head->requests.end(); it2++){
-          if (it2->mode == LockRequest::XL){
-            break;
-          } else {
-            it2->granted = true;
-          }
-        }
-      } else if (cur_it->mode == LockRequest::SH && next_it->mode == LockRequest::XL){
-        if (cur_it == lock_head->requests.begin()){
+      if (next_it != lock_head->requests.end()){
+        if (cur_it->mode == LockRequest::XL && next_it->mode == LockRequest::XL){
           next_it->granted = true;
+        } else if (cur_it->mode == LockRequest::XL && next_it->mode == LockRequest::SH){
+          for (auto it2 = next_it; it2 != lock_head->requests.end(); it2++){
+            if (it2->mode == LockRequest::XL){
+              break;
+            } else {
+              it2->granted = true;
+            }
+          }
+        } else if (cur_it->mode == LockRequest::SH && next_it->mode == LockRequest::XL){
+          if (cur_it == lock_head->requests.begin()){
+            next_it->granted = true;
+          }
         }
       }
       lock_head->requests.erase(cur_it);
