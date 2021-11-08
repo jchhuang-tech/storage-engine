@@ -42,8 +42,8 @@ LogManager::~LogManager() {
   // any).
   //
   // TODO: Your implementation.
-  ssize_t ret;
-  // ssize_t ret = pwrite(fd, logbuf, logbuf_size, logbuf_offset); // not sure about this
+  // ssize_t ret;
+  ssize_t ret = pwrite(fd, logbuf, logbuf_size, durable_lsn); // not sure about this
   LOG_IF(FATAL, ret < 0) << "error";
 
   ret = fsync(fd);
