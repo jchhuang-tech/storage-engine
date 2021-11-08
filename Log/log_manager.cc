@@ -60,9 +60,32 @@ bool LogManager::LogInsert(RID rid, const char *record, uint32_t length) {
   if (sizeof(LogRecord) + length + sizeof(LSN) > logbuf_size){
     return false;
   }
-  // new (logbuf) 
   struct LogRecord* log_record = (struct LogRecord*)malloc(sizeof(LogRecord) + length + sizeof(LSN));
   new (log_record) LogRecord(rid.value, LogRecord::Insert, length);
+  memcpy(log_record->payload, record, length);
+  memcpy(logbuf + logbuf_offset, log_record, sizeof(LogRecord) + length);
+  logbuf_offset += sizeof(LogRecord) + length;
+  memcpy(logbuf + logbuf_offset, &current_lsn, sizeof(LSN));
+  logbuf_offset += sizeof(LSN);
+  current_lsn += sizeof(LogRecord) + length + sizeof(LSN);
+  // new (logbuf + logbuf_offset) LogRecord(rid.value, LogRecord::Insert, length);
+  // logbuf_offset += sizeof(LogRecord);
+  // memcpy(logbuf + logbuf_offset, record, length);
+  // logbuf_offset += length;
+  // memcpy(logbuf + logbuf_offset, &current_lsn, sizeof(LSN));
+  // logbuf_offset += sizeof(LSN);
+  // current_lsn += sizeof(LogRecord) + length + sizeof(LSN);
+
+  return true;
+}
+
+bool LogManager::LogUpdate(RID rid, const char *record, uint32_t length) {
+  // TODO: Your implementation.
+  if (sizeof(LogRecord) + length + sizeof(LSN) > logbuf_size){
+    return false;
+  }
+  struct LogRecord* log_record = (struct LogRecord*)malloc(sizeof(LogRecord) + length + sizeof(LSN));
+  new (log_record) LogRecord(rid.value, LogRecord::Update, length);
   memcpy(log_record->payload, record, length);
   memcpy(logbuf + logbuf_offset, log_record, sizeof(LogRecord) + length);
   logbuf_offset += sizeof(LogRecord) + length;
@@ -72,14 +95,19 @@ bool LogManager::LogInsert(RID rid, const char *record, uint32_t length) {
   return true;
 }
 
-bool LogManager::LogUpdate(RID rid, const char *record, uint32_t length) {
-  // TODO: Your implementation.
-  return false;
-}
-
 bool LogManager::LogDelete(RID rid) {
   // TODO: Your implementation.
-  return false;
+  if (sizeof(LogRecord) + sizeof(LSN) > logbuf_size){
+    return false;
+  }
+  struct LogRecord* log_record = (struct LogRecord*)malloc(sizeof(LogRecord) + sizeof(LSN));
+  new (log_record) LogRecord(rid.value, LogRecord::Delete, 0);
+  memcpy(logbuf + logbuf_offset, log_record, sizeof(LogRecord));
+  logbuf_offset += sizeof(LogRecord);
+  memcpy(logbuf + logbuf_offset, &current_lsn, sizeof(LSN));
+  logbuf_offset += sizeof(LSN);
+  current_lsn += sizeof(LogRecord) + sizeof(LSN);
+  return true;
 }
 
 bool LogManager::LogCommit(uint64_t tid) {
