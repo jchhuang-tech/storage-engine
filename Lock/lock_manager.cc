@@ -204,6 +204,10 @@ bool Transaction::Commit() {
   // 3. Set transaction state to "committed" and return true
   //
   // TODO: Your implementation
+  LogManager* log_manager = yase::LogManager::Get();
+  log_manager->LogCommit(timestamp);
+  log_manager->Flush();
+  log_manager->LogEnd(timestamp);
   while (!locks.empty()){
     LockManager::Get()->ReleaseLock(this, *locks.begin());
   }
@@ -222,6 +226,10 @@ uint64_t Transaction::Abort() {
   // for (auto it = locks.begin(); it != locks.end(); it++){
   //   LockManager::Get()->ReleaseLock(this, *it);
   // }
+  LogManager* log_manager = yase::LogManager::Get();
+  log_manager->LogAbort(timestamp);
+  log_manager->Flush();
+  log_manager->LogEnd(timestamp);
   while (!locks.empty()){
     LockManager::Get()->ReleaseLock(this, *locks.begin());
   }
