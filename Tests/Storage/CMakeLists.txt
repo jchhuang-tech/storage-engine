@@ -14,6 +14,6 @@ add_test(NAME buffer_manager_test COMMAND buffer_manager_test)
 add_custom_target(buffer_manager_test_custom COMMAND ${CMAKE_CTEST_COMMAND} DEPENDS buffer_manager_test)
 
 add_executable(table_test table_test.cc)
-target_link_libraries(table_test gtest glog gflags buffermanager file table)
+target_link_libraries(table_test gtest glog gflags buffermanager file table logmanager)
 add_test(NAME table_test COMMAND table_test)
 add_custom_target(table_test_custom COMMAND ${CMAKE_CTEST_COMMAND} DEPENDS table_test)

@@ -9,6 +9,7 @@
  */
 #include "table.h"
 #include "buffer_manager.h"
+#include <Log/log_manager.h>
 
 namespace yase {
 
@@ -56,6 +57,8 @@ retry:
     goto retry;
   }
 
+  LogManager* log_manager = LogManager::Get();
+  log_manager->LogInsert(RID(pid, slot), record, sizeof(record));
   p->SetDirty(true);
   p->Unlatch();
   bm->UnpinPage(p);

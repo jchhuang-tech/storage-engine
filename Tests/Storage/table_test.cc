@@ -20,6 +20,7 @@
 
 #include <Storage/buffer_manager.h>
 #include <Storage/table.h>
+#include <Log/log_manager.h>
 
 // Single-threaded test with a single table
 GTEST_TEST(Table, SimpleTableTest) {
@@ -30,6 +31,7 @@ GTEST_TEST(Table, SimpleTableTest) {
 
   // Initialize the buffer pool with 50 page frames
   yase::BufferManager::Initialize(kPageCount);
+  yase::LogManager::Initialize("log_file", 1024);
 
   // Create a table
   yase::Table table("mytable", kRecordSize);
