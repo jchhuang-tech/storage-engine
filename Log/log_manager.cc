@@ -77,6 +77,7 @@ bool LogManager::LogInsert(RID rid, const char *record, uint32_t length) {
   memcpy(logbuf + logbuf_offset, &current_lsn, sizeof(LSN));
   logbuf_offset += sizeof(LSN);
   current_lsn += sizeof(LogRecord) + length + sizeof(LSN);
+  free(log_record);
   // new (logbuf + logbuf_offset) LogRecord(rid.value, LogRecord::Insert, length);
   // logbuf_offset += sizeof(LogRecord);
   // memcpy(logbuf + logbuf_offset, record, length);
@@ -107,6 +108,7 @@ bool LogManager::LogUpdate(RID rid, const char *record, uint32_t length) {
   memcpy(logbuf + logbuf_offset, &current_lsn, sizeof(LSN));
   logbuf_offset += sizeof(LSN);
   current_lsn += sizeof(LogRecord) + length + sizeof(LSN);
+  free(log_record);
   logbuf_latch.unlock();
   return true;
 }
@@ -128,6 +130,7 @@ bool LogManager::LogDelete(RID rid) {
   memcpy(logbuf + logbuf_offset, &current_lsn, sizeof(LSN));
   logbuf_offset += sizeof(LSN);
   current_lsn += sizeof(LogRecord) + sizeof(LSN);
+  free(log_record);
   logbuf_latch.unlock();
   return true;
 }
@@ -149,6 +152,7 @@ bool LogManager::LogCommit(uint64_t tid) {
   memcpy(logbuf + logbuf_offset, &current_lsn, sizeof(LSN));
   logbuf_offset += sizeof(LSN);
   current_lsn += sizeof(LogRecord) + sizeof(LSN);
+  free(log_record);
   logbuf_latch.unlock();
   return true;
 }
@@ -170,6 +174,7 @@ bool LogManager::LogAbort(uint64_t tid) {
   memcpy(logbuf + logbuf_offset, &current_lsn, sizeof(LSN));
   logbuf_offset += sizeof(LSN);
   current_lsn += sizeof(LogRecord) + sizeof(LSN);
+  free(log_record);
   logbuf_latch.unlock();
   return true;
 }
@@ -191,6 +196,7 @@ bool LogManager::LogEnd(uint64_t tid) {
   memcpy(logbuf + logbuf_offset, &current_lsn, sizeof(LSN));
   logbuf_offset += sizeof(LSN);
   current_lsn += sizeof(LogRecord) + sizeof(LSN);
+  free(log_record);
   logbuf_latch.unlock();
   return true;
 }
