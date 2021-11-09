@@ -22,6 +22,7 @@ Table::Table(std::string name, uint32_t record_size)
 RID Table::Insert(const char *record) {
   // Obtain buffer manager instance 
   auto *bm = BufferManager::Get();
+  auto* lm = LogManager::Get();
 
 retry:
   PageId pid = next_free_pid;
@@ -57,8 +58,7 @@ retry:
     goto retry;
   }
 
-  LogManager* log_manager = LogManager::Get();
-  log_manager->LogInsert(RID(pid, slot), record, sizeof(record));
+  lm->LogInsert(RID(pid, slot), record, sizeof(record));
   p->SetDirty(true);
   p->Unlatch();
   bm->UnpinPage(p);
@@ -110,6 +110,7 @@ bool Table::Delete(RID rid) {
   }
 
   auto *bm = BufferManager::Get();
+  auto* lm = LogManager::Get();
   Page *p = bm->PinPage(rid.GetPageId());
   if (!p) {
     return false;
@@ -120,6 +121,7 @@ bool Table::Delete(RID rid) {
   bool success = dp->Delete(rid);
   if (success) {
     p->SetDirty(true);
+    lm->LogDelete(rid);
   }
   p->Unlatch();
   bm->UnpinPage(p);
@@ -151,6 +153,7 @@ bool Table::Update(RID rid, const char *record) {
     return false;
   }
   auto *bm = BufferManager::Get();
+  auto* lm = LogManager::Get();
   Page *p = bm->PinPage(rid.GetPageId());
 
   if (!p) {
@@ -162,6 +165,7 @@ bool Table::Update(RID rid, const char *record) {
   bool success = dp->Update(rid, record);
   if (success) {
     p->SetDirty(true);
+    lm->LogUpdate(rid, record, sizeof(record));
   }
   p->Unlatch();
   bm->UnpinPage(p);
