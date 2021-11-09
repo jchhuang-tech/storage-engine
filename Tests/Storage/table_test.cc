@@ -29,9 +29,9 @@ GTEST_TEST(Table, SimpleTableTest) {
   static const uint32_t kDataSize = 4 * MB;
   static const uint32_t kPageCount = 50;
 
+  yase::LogManager::Initialize("log_file", 1024);
   // Initialize the buffer pool with 50 page frames
   yase::BufferManager::Initialize(kPageCount);
-  yase::LogManager::Initialize("log_file", 1024);
 
   // Create a table
   yase::Table table("mytable", kRecordSize);

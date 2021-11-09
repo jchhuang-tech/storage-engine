@@ -27,8 +27,8 @@ class FileTests : public ::testing::Test {
   yase::File *file;
 
   void SetUp() override {
-    // Initialize the buffer pool
     yase::LogManager::Initialize("log_file", 1024);
+    // Initialize the buffer pool
     yase::BufferManager::Initialize(10);
 
     file = nullptr;

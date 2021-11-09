@@ -26,8 +26,8 @@ class PSkipListTest : public ::testing::Test {
   PSkipList *slist;
 
   void SetUp() override {
-    yase::BufferManager::Initialize(10);
     yase::LogManager::Initialize("log_file", 1024);
+    yase::BufferManager::Initialize(10);
     slist = nullptr;
   }
 
