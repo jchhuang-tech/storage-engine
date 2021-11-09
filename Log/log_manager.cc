@@ -33,7 +33,6 @@ LogManager::LogManager(const char *log_filename, uint32_t logbuf_kb) {
   logbuf_size = logbuf_kb * 1024;
   logbuf = (char*)malloc(logbuf_size);
   logbuf_offset = 0;
-
   durable_lsn = 0;
   current_lsn = 0;
   logbuf_latch.unlock();
@@ -44,15 +43,8 @@ LogManager::~LogManager() {
   // any).
   //
   // TODO: Your implementation.
-  // ssize_t ret;
   logbuf_latch.lock();
   Flush();
-  // ssize_t ret = pwrite(fd, logbuf, logbuf_size, durable_lsn); // not sure about this
-  // LOG_IF(FATAL, ret < 0) << "error";
-
-  // ret = fsync(fd);
-  // LOG_IF(FATAL, ret < 0) << "error";
-  
   free(logbuf);
   int ret = close(fd);
   LOG_IF(FATAL, ret < 0) << "error";
@@ -209,9 +201,13 @@ bool LogManager::Flush() {
   //
   // TODO: Your implementation.
   ssize_t ret = pwrite(fd, logbuf, logbuf_offset, durable_lsn); // not sure about this
-  LOG_IF(FATAL, ret < 0) << "error";
+  if (ret < 0){
+    return false;
+  }
   ret = fsync(fd);
-  LOG_IF(FATAL, ret < 0) << "error";
+  if (ret < 0){
+    return false;
+  }
   durable_lsn = current_lsn;
   logbuf_offset = 0;
   return true;
