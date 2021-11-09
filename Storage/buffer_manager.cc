@@ -179,7 +179,6 @@ void BufferManager::RegisterFile(BaseFile *bf) {
 }
 
 Page* BufferManager::EvictPage() {
-  // auto* lm = LogManager::Get();
   bool ret = false;
   if (lru_queue.empty()) {
     return nullptr;
