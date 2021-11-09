@@ -8,6 +8,7 @@
  * Not for distribution without prior approval.
  */
 #include "buffer_manager.h"
+#include <Log/log_manager.h>
 
 namespace yase {
 
@@ -178,6 +179,7 @@ void BufferManager::RegisterFile(BaseFile *bf) {
 }
 
 Page* BufferManager::EvictPage() {
+  // auto* lm = LogManager::Get();
   bool ret = false;
   if (lru_queue.empty()) {
     return nullptr;
@@ -195,6 +197,7 @@ Page* BufferManager::EvictPage() {
   }
   uint16_t evicted_bf_id = evicted_page_id.GetFileID();
   if (evicted_page->IsDirty()){
+    LogManager::Get()->Flush();
     ret = file_map[evicted_bf_id]->FlushPage(evicted_page_id, evicted_page->page_data);
     evicted_page->SetDirty(false);
     evicted_page->Unlatch();
