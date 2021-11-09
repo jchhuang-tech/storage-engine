@@ -17,6 +17,7 @@
 
 #include <Storage/buffer_manager.h>
 #include <Index/pskiplist.h>
+#include <Log/log_manager.h>
 
 namespace yase {
 
@@ -26,6 +27,7 @@ class PSkipListTest : public ::testing::Test {
 
   void SetUp() override {
     yase::BufferManager::Initialize(10);
+    yase::LogManager::Initialize("log_file", 1024);
     slist = nullptr;
   }
 
@@ -35,6 +37,7 @@ class PSkipListTest : public ::testing::Test {
     }
     slist = nullptr;
     yase::BufferManager::Uninitialize();
+    yase::LogManager::Uninitialize();
   }
 
   void NewPSkipList(std::string name, uint32_t key_size) {

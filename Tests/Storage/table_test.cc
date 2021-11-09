@@ -88,6 +88,7 @@ GTEST_TEST(Table, SimpleTableTest) {
     ASSERT_TRUE(r.IsValid());
   }
   yase::BufferManager::Uninitialize();
+  yase::LogManager::Uninitialize();
 }
 
 int main(int argc, char **argv) {
