@@ -36,11 +36,11 @@ class FileTests : public ::testing::Test {
     system(("rm -rf " + file_name).c_str());
   }
   void TearDown() override {
+    yase::LogManager::Uninitialize();
     yase::BufferManager::Uninitialize();
     if (file) {
       delete file;
     }
-    yase::LogManager::Uninitialize();
     system(("rm -rf " + file_name).c_str());
   }
 

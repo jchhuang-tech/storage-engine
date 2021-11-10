@@ -87,8 +87,8 @@ GTEST_TEST(Table, SimpleTableTest) {
     yase::RID r = table.Insert(record);
     ASSERT_TRUE(r.IsValid());
   }
-  yase::BufferManager::Uninitialize();
   yase::LogManager::Uninitialize();
+  yase::BufferManager::Uninitialize();
 }
 
 int main(int argc, char **argv) {

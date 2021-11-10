@@ -36,8 +36,8 @@ class PSkipListTest : public ::testing::Test {
       delete slist;
     }
     slist = nullptr;
-    yase::BufferManager::Uninitialize();
     yase::LogManager::Uninitialize();
+    yase::BufferManager::Uninitialize();
   }
 
   void NewPSkipList(std::string name, uint32_t key_size) {

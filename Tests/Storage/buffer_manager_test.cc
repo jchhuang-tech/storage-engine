@@ -33,8 +33,8 @@ class BufferManagerTests : public ::testing::Test {
     bm = nullptr;
   }
   void TearDown() override {
-    yase::BufferManager::Uninitialize();
     yase::LogManager::Uninitialize();
+    yase::BufferManager::Uninitialize();
   }
 
   void NewBufferManager() {
