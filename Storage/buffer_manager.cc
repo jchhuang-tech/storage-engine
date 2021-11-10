@@ -196,7 +196,10 @@ Page* BufferManager::EvictPage() {
   }
   uint16_t evicted_bf_id = evicted_page_id.GetFileID();
   if (evicted_page->IsDirty()){
-    LogManager::Get()->Flush();
+    LogManager* lm = LogManager::Get();
+    lm->logbuf_latch.lock();
+    lm->Flush();
+    lm->logbuf_latch.unlock();
     ret = file_map[evicted_bf_id]->FlushPage(evicted_page_id, evicted_page->page_data);
     evicted_page->SetDirty(false);
     evicted_page->Unlatch();
