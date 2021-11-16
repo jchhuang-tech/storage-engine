@@ -172,6 +172,18 @@ bool LockManager::ReleaseLock(Transaction *tx, RID &rid) {
     lock_head->latch.unlock();
     return false;
   }
+
+  bool is_rid_tx_locked = false;
+  for (auto tx_it = tx->locks.begin(); tx_it != tx->locks.end(); tx_it++){
+    if (tx_it->value == rid.value){
+      is_rid_tx_locked = true;
+      break;
+    }
+  }
+  if (!is_rid_tx_locked){
+    return false;
+  }
+    
   for (auto cur_it = lock_head->requests.begin(); cur_it != lock_head->requests.end(); cur_it++){
     if (cur_it->requester == tx && cur_it->granted){
       auto next_it = std::next(cur_it, 1);
