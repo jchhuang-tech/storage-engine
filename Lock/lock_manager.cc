@@ -66,6 +66,10 @@ bool LockManager::AcquireLock(Transaction *tx, RID &rid, LockRequest::Mode mode)
   // reference to clarify the steps needed for this function.
   //
   // TODO: Your implementation
+  if (!tx){
+    return false;
+  }
+
   if (mode == LockRequest::NL){
     return true;
   }
@@ -75,6 +79,7 @@ bool LockManager::AcquireLock(Transaction *tx, RID &rid, LockRequest::Mode mode)
     latch.unlock();
     struct LockHead* lock_head = lock_table[rid.value];
     lock_head->latch.lock();
+    // if the queue is empty, enqueue and grant it
     if (lock_head->requests.empty()){
       lock_head->requests.emplace_back(tx, mode, true);
       lock_head->current_mode = mode;
@@ -82,6 +87,7 @@ bool LockManager::AcquireLock(Transaction *tx, RID &rid, LockRequest::Mode mode)
       tx->locks.push_back(rid);
       return true;
     }
+    // if the same transaction has other requests with high permissions in the queue, don't enqueue
     for (auto const& i : lock_head->requests) {
       if (i.requester == tx && (i.mode == mode || i.mode == LockRequest::XL)){
         lock_head->latch.unlock();
@@ -148,7 +154,12 @@ bool LockManager::ReleaseLock(Transaction *tx, RID &rid) {
   // 3. Return true only if the release operation succeeded.
   //
   // TODO: Your implementation
+  if (!tx){
+    return false;
+  }
+  
   latch.lock();
+  // if RID is not in lock table
   if (lock_table.count(rid.value) == 0){
     latch.unlock();
     return false;
@@ -156,12 +167,13 @@ bool LockManager::ReleaseLock(Transaction *tx, RID &rid) {
   struct LockHead* lock_head = lock_table[rid.value];
   latch.unlock();
   lock_head->latch.lock();
+  // if RID is not locked
   if (lock_head->current_mode == LockRequest::NL){
     lock_head->latch.unlock();
     return false;
   }
   for (auto cur_it = lock_head->requests.begin(); cur_it != lock_head->requests.end(); cur_it++){
-    if (cur_it->requester == tx){
+    if (cur_it->requester == tx && cur_it->granted){
       auto next_it = std::next(cur_it, 1);
       if (next_it != lock_head->requests.end()){
         if (cur_it->mode == LockRequest::XL && next_it->mode == LockRequest::XL){
@@ -205,6 +217,9 @@ bool Transaction::Commit() {
   //
   // TODO: Your implementation
   LogManager* log_manager = LogManager::Get();
+  if (!log_manager){
+    return false;
+  }
   log_manager->LogCommit(timestamp);
   log_manager->Flush();
   log_manager->LogEnd(timestamp);
@@ -213,7 +228,6 @@ bool Transaction::Commit() {
   }
   state = kStateCommitted;
   return true;
-  // return false;
 }
 
 uint64_t Transaction::Abort() {
@@ -223,10 +237,10 @@ uint64_t Transaction::Abort() {
   // 4. Return the transaction's timestamp
   //
   // TODO: Your implementation
-  // for (auto it = locks.begin(); it != locks.end(); it++){
-  //   LockManager::Get()->ReleaseLock(this, *it);
-  // }
   LogManager* log_manager = LogManager::Get();
+  if (!log_manager){
+    return 0;
+  }
   log_manager->LogAbort(timestamp);
   log_manager->Flush();
   log_manager->LogEnd(timestamp);
@@ -235,7 +249,6 @@ uint64_t Transaction::Abort() {
   }
   state = kStateAborted;
   return timestamp;
-  // return 0;
 }
 
 }  // namespace yase
