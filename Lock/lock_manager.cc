@@ -181,6 +181,7 @@ bool LockManager::ReleaseLock(Transaction *tx, RID &rid) {
     }
   }
   if (!is_rid_tx_locked){
+    lock_head->latch.unlock();
     return false;
   }
     
