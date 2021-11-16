@@ -19,6 +19,7 @@
 #include <gtest/gtest.h>
 
 #include <Storage/buffer_manager.h>
+#include <Log/log_manager.h>
 
 namespace yase {
 
@@ -28,9 +29,11 @@ class BufferManagerTests : public ::testing::Test {
   yase::BufferManager *bm;
 
   void SetUp() override {
+    yase::LogManager::Initialize("log_file", 1024);
     bm = nullptr;
   }
   void TearDown() override {
+    yase::LogManager::Uninitialize();
     yase::BufferManager::Uninitialize();
   }
 

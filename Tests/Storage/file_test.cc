@@ -18,6 +18,7 @@
 #include <Storage/buffer_manager.h>
 #include <Storage/file.h>
 #include <Storage/page.h>
+#include <Log/log_manager.h>
 
 static const uint32_t kRecordSize = 8;
 class FileTests : public ::testing::Test {
@@ -26,6 +27,7 @@ class FileTests : public ::testing::Test {
   yase::File *file;
 
   void SetUp() override {
+    yase::LogManager::Initialize("log_file", 1024);
     // Initialize the buffer pool
     yase::BufferManager::Initialize(10);
 
@@ -34,6 +36,7 @@ class FileTests : public ::testing::Test {
     system(("rm -rf " + file_name).c_str());
   }
   void TearDown() override {
+    yase::LogManager::Uninitialize();
     yase::BufferManager::Uninitialize();
     if (file) {
       delete file;
