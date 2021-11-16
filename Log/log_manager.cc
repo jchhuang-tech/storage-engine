@@ -54,12 +54,14 @@ LogManager::~LogManager() {
 bool LogManager::LogInsert(RID rid, const char *record, uint32_t length) {
   // TODO: Your implementation.
   logbuf_latch.lock();
+retry:
   if (sizeof(LogRecord) + length + sizeof(LSN) > logbuf_size){
     logbuf_latch.unlock();
     return false;
   }
   if (sizeof(LogRecord) + length + sizeof(LSN) > logbuf_size - logbuf_offset){
     Flush();
+    goto retry;
   }
   struct LogRecord* log_record = (struct LogRecord*)malloc(sizeof(LogRecord) + length + sizeof(LSN));
   new (log_record) LogRecord(rid.value, LogRecord::Insert, length);
@@ -70,14 +72,6 @@ bool LogManager::LogInsert(RID rid, const char *record, uint32_t length) {
   logbuf_offset += sizeof(LSN);
   current_lsn += sizeof(LogRecord) + length + sizeof(LSN);
   free(log_record);
-  // new (logbuf + logbuf_offset) LogRecord(rid.value, LogRecord::Insert, length);
-  // logbuf_offset += sizeof(LogRecord);
-  // memcpy(logbuf + logbuf_offset, record, length);
-  // logbuf_offset += length;
-  // memcpy(logbuf + logbuf_offset, &current_lsn, sizeof(LSN));
-  // logbuf_offset += sizeof(LSN);
-  // current_lsn += sizeof(LogRecord) + length + sizeof(LSN);
-
   logbuf_latch.unlock();
   return true;
 }
@@ -85,12 +79,14 @@ bool LogManager::LogInsert(RID rid, const char *record, uint32_t length) {
 bool LogManager::LogUpdate(RID rid, const char *record, uint32_t length) {
   // TODO: Your implementation.
   logbuf_latch.lock();
+retry:
   if (sizeof(LogRecord) + length + sizeof(LSN) > logbuf_size){
     logbuf_latch.unlock();
     return false;
   }
   if (sizeof(LogRecord) + length + sizeof(LSN) > logbuf_size - logbuf_offset){
     Flush();
+    goto retry;
   }
   struct LogRecord* log_record = (struct LogRecord*)malloc(sizeof(LogRecord) + length + sizeof(LSN));
   new (log_record) LogRecord(rid.value, LogRecord::Update, length);
@@ -108,12 +104,14 @@ bool LogManager::LogUpdate(RID rid, const char *record, uint32_t length) {
 bool LogManager::LogDelete(RID rid) {
   // TODO: Your implementation.
   logbuf_latch.lock();
+retry:
   if (sizeof(LogRecord) + sizeof(LSN) > logbuf_size){
     logbuf_latch.unlock();
     return false;
   }
   if (sizeof(LogRecord) + sizeof(LSN) > logbuf_size - logbuf_offset){
     Flush();
+    goto retry;
   }
   struct LogRecord* log_record = (struct LogRecord*)malloc(sizeof(LogRecord) + sizeof(LSN));
   new (log_record) LogRecord(rid.value, LogRecord::Delete, 0);
@@ -130,12 +128,14 @@ bool LogManager::LogDelete(RID rid) {
 bool LogManager::LogCommit(uint64_t tid) {
   // TODO: Your implementation.
   logbuf_latch.lock();
+retry:
   if (sizeof(LogRecord) + sizeof(LSN) > logbuf_size){
     logbuf_latch.unlock();
     return false;
   }
   if (sizeof(LogRecord) + sizeof(LSN) > logbuf_size - logbuf_offset){
     Flush();
+    goto retry;
   }
   struct LogRecord* log_record = (struct LogRecord*)malloc(sizeof(LogRecord) + sizeof(LSN));
   new (log_record) LogRecord(tid, LogRecord::Commit, 0);
@@ -152,12 +152,14 @@ bool LogManager::LogCommit(uint64_t tid) {
 bool LogManager::LogAbort(uint64_t tid) {
   // TODO: Your implementation.
   logbuf_latch.lock();
+retry:
   if (sizeof(LogRecord) + sizeof(LSN) > logbuf_size){
     logbuf_latch.unlock();
     return false;
   }
   if (sizeof(LogRecord) + sizeof(LSN) > logbuf_size - logbuf_offset){
     Flush();
+    goto retry;
   }
   struct LogRecord* log_record = (struct LogRecord*)malloc(sizeof(LogRecord) + sizeof(LSN));
   new (log_record) LogRecord(tid, LogRecord::Abort, 0);
@@ -174,12 +176,14 @@ bool LogManager::LogAbort(uint64_t tid) {
 bool LogManager::LogEnd(uint64_t tid) {
   // TODO: Your implementation.
   logbuf_latch.lock();
+retry:
   if (sizeof(LogRecord) + sizeof(LSN) > logbuf_size){
     logbuf_latch.unlock();
     return false;
   }
   if (sizeof(LogRecord) + sizeof(LSN) > logbuf_size - logbuf_offset){
     Flush();
+    goto retry;
   }
   struct LogRecord* log_record = (struct LogRecord*)malloc(sizeof(LogRecord) + sizeof(LSN));
   new (log_record) LogRecord(tid, LogRecord::End, 0);

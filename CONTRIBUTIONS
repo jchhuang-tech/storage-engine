@@ -1,3 +1,3 @@
-Chonghao Huang, cha147: implemented skiplist and pskiplist
-Shantanu Bhatnagar, bhatnaga: worked on skiplist implementation, concurrency and valgrind
-Kenny Bui, kennyb: worked on skiplist concurrency and valgrind
+Chonghao Huang, cha147: implemented lock manager and log manager
+Shantanu Bhatnagar, bhatnaga: worked on lock manager and log manager
+Kenny Bui, kennyb: worked on lock manager and log manager
