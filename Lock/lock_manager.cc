@@ -233,11 +233,24 @@ bool Transaction::Commit() {
   if (!log_manager){
     return false;
   }
-  log_manager->LogCommit(timestamp);
-  log_manager->Flush();
-  log_manager->LogEnd(timestamp);
+  bool ret = false;
+  ret = log_manager->LogCommit(timestamp);
+  if (!ret){
+    return false;
+  }
+  ret = log_manager->Flush();
+  if (!ret){
+    return false;
+  }
+  ret = log_manager->LogEnd(timestamp);
+  if (!ret){
+    return false;
+  }
   while (!locks.empty()){
-    LockManager::Get()->ReleaseLock(this, *locks.begin());
+    ret = LockManager::Get()->ReleaseLock(this, *locks.begin());
+    if (!ret){
+      return false;
+    }
   }
   state = kStateCommitted;
   return true;
@@ -252,13 +265,26 @@ uint64_t Transaction::Abort() {
   // TODO: Your implementation
   LogManager* log_manager = LogManager::Get();
   if (!log_manager){
-    return 0;
+    return kInvalidTimestamp;
   }
-  log_manager->LogAbort(timestamp);
-  log_manager->Flush();
-  log_manager->LogEnd(timestamp);
+  bool ret = false;
+  ret = log_manager->LogAbort(timestamp);
+  if (!ret){
+    return kInvalidTimestamp;
+  }
+  ret = log_manager->Flush();
+  if (!ret){
+    return kInvalidTimestamp;
+  }
+  ret = log_manager->LogEnd(timestamp);
+  if (!ret){
+    return kInvalidTimestamp;
+  }
   while (!locks.empty()){
-    LockManager::Get()->ReleaseLock(this, *locks.begin());
+    ret = LockManager::Get()->ReleaseLock(this, *locks.begin());
+    if (!ret){
+      return kInvalidTimestamp;
+    }
   }
   state = kStateAborted;
   return timestamp;

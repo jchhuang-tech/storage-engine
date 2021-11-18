@@ -60,7 +60,11 @@ retry:
     return false;
   }
   if (sizeof(LogRecord) + length + sizeof(LSN) > logbuf_size - logbuf_offset){
-    Flush();
+    bool ret = Flush();
+    if (!ret){
+      logbuf_latch.unlock();
+      return false;
+    }
     goto retry;
   }
   struct LogRecord* log_record = (struct LogRecord*)malloc(sizeof(LogRecord) + length + sizeof(LSN));
@@ -85,7 +89,11 @@ retry:
     return false;
   }
   if (sizeof(LogRecord) + length + sizeof(LSN) > logbuf_size - logbuf_offset){
-    Flush();
+    bool ret = Flush();
+    if (!ret){
+      logbuf_latch.unlock();
+      return false;
+    }
     goto retry;
   }
   struct LogRecord* log_record = (struct LogRecord*)malloc(sizeof(LogRecord) + length + sizeof(LSN));
@@ -110,7 +118,11 @@ retry:
     return false;
   }
   if (sizeof(LogRecord) + sizeof(LSN) > logbuf_size - logbuf_offset){
-    Flush();
+    bool ret = Flush();
+    if (!ret){
+      logbuf_latch.unlock();
+      return false;
+    }
     goto retry;
   }
   struct LogRecord* log_record = (struct LogRecord*)malloc(sizeof(LogRecord) + sizeof(LSN));
@@ -134,7 +146,11 @@ retry:
     return false;
   }
   if (sizeof(LogRecord) + sizeof(LSN) > logbuf_size - logbuf_offset){
-    Flush();
+    bool ret = Flush();
+    if (!ret){
+      logbuf_latch.unlock();
+      return false;
+    }
     goto retry;
   }
   struct LogRecord* log_record = (struct LogRecord*)malloc(sizeof(LogRecord) + sizeof(LSN));
@@ -158,7 +174,11 @@ retry:
     return false;
   }
   if (sizeof(LogRecord) + sizeof(LSN) > logbuf_size - logbuf_offset){
-    Flush();
+    bool ret = Flush();
+    if (!ret){
+      logbuf_latch.unlock();
+      return false;
+    }
     goto retry;
   }
   struct LogRecord* log_record = (struct LogRecord*)malloc(sizeof(LogRecord) + sizeof(LSN));
@@ -182,7 +202,11 @@ retry:
     return false;
   }
   if (sizeof(LogRecord) + sizeof(LSN) > logbuf_size - logbuf_offset){
-    Flush();
+    bool ret = Flush();
+    if (!ret){
+      logbuf_latch.unlock();
+      return false;
+    }
     goto retry;
   }
   struct LogRecord* log_record = (struct LogRecord*)malloc(sizeof(LogRecord) + sizeof(LSN));
