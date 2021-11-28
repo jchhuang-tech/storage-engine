@@ -93,25 +93,10 @@ void SimpleBench::WorkerRun(uint32_t thread_id) {
     uint64_t rand_num = rand(gen);
     if (rand_num <= FLAGS_point_read_pct) {
       TxPointRead() ? ncommits[thread_id]++ : naborts[thread_id]++;
-      // if (ret) {
-      //   ncommits[thread_id]++;
-      // } else {
-      //   naborts[thread_id]++;
-      // }
     } else if (rand_num > FLAGS_point_read_pct && rand_num <= FLAGS_point_read_pct + FLAGS_read_update_pct) {
-      bool ret = TxReadUpdate();
-      if (ret) {
-        ncommits[thread_id]++;
-      } else {
-        naborts[thread_id]++;
-      }
+      TxReadUpdate() ? ncommits[thread_id]++ : naborts[thread_id]++;
     } else if (rand_num > FLAGS_point_read_pct + FLAGS_read_update_pct ) {
-      bool ret = TxScanUpdate();
-      if (ret) {
-        ncommits[thread_id]++;
-      } else {
-        naborts[thread_id]++;
-      }
+      TxScanUpdate() ? ncommits[thread_id]++ : naborts[thread_id]++;
     }
   }
 }
