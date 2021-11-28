@@ -14,6 +14,7 @@
 #include <gtest/gtest.h>
 
 #include "simple_bench.h"
+#include <random>
 
 // Command line arguments defined using gflags: 
 DEFINE_uint64(threads, 1, "Number of worker threads");
@@ -31,7 +32,7 @@ DEFINE_uint64(scan_update_pct, 20, "Insert percentage");
 
 namespace yase {
 
-SimpleBench::SimpleBench() {
+SimpleBench::SimpleBench() : PerformanceTest(FLAGS_threads, FLAGS_seconds) {
   // 1. Initialize benchmark including the base Performance Test class
   // 2. Create a table with the specified table file name (FLAGS_tablefile) that
   //    stores 8-byte records
@@ -41,12 +42,16 @@ SimpleBench::SimpleBench() {
   // structure.
   //
   // TODO: Your implementation
+  new (table) Table(FLAGS_tablefile, 8);
+  new (index) SkipList(8);
 }
 
 SimpleBench::~SimpleBench() {
   // Deallocate any dynamically allocated memory
   //
   // TODO: Your implementation
+  delete table;
+  delete index;
 }
 
 void SimpleBench::Load() {
@@ -59,6 +64,11 @@ void SimpleBench::Load() {
   // output an error message.
   //
   // TODO: Your implementation
+  for (uint64_t i = 1; i <= FLAGS_table_size; i++) {
+    char* record = (char*)&i;
+    RID rid = table->Insert(record);
+    index->Insert((char*) i, rid);
+  }
 }
 
 void SimpleBench::WorkerRun(uint32_t thread_id) {
@@ -72,6 +82,38 @@ void SimpleBench::WorkerRun(uint32_t thread_id) {
   //    [ncommits]/[naborts] stats using [thread_id]
   //
   // TODO: Your implementation
+  thread_start_barrier++;
+  while (!bench_start_barrier) {
+    // busy spin
+  }
+  std::random_device rd;
+  std::mt19937 gen(rd()); 
+  std::uniform_int_distribution<> rand(1, 100);
+  while (!shutdown) {
+    uint64_t rand_num = rand(gen);
+    if (rand_num <= FLAGS_point_read_pct) {
+      TxPointRead() ? ncommits[thread_id]++ : naborts[thread_id]++;
+      // if (ret) {
+      //   ncommits[thread_id]++;
+      // } else {
+      //   naborts[thread_id]++;
+      // }
+    } else if (rand_num > FLAGS_point_read_pct && rand_num <= FLAGS_point_read_pct + FLAGS_read_update_pct) {
+      bool ret = TxReadUpdate();
+      if (ret) {
+        ncommits[thread_id]++;
+      } else {
+        naborts[thread_id]++;
+      }
+    } else if (rand_num > FLAGS_point_read_pct + FLAGS_read_update_pct ) {
+      bool ret = TxScanUpdate();
+      if (ret) {
+        ncommits[thread_id]++;
+      } else {
+        naborts[thread_id]++;
+      }
+    }
+  }
 }
 
 bool SimpleBench::TxPointRead() {

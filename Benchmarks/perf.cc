@@ -23,10 +23,6 @@ PerformanceTest::PerformanceTest(uint32_t threads, uint32_t seconds) {
   // TODO: Your implementation
   this->nthreads = threads;
   this->seconds = seconds;
-  // for (uint32_t i = 0; i < nthreads; i++){
-  //   std::thread new_thread;
-  //   workers.push_back(&new_thread);
-  // }
 }
 
 PerformanceTest::~PerformanceTest() {
@@ -43,8 +39,9 @@ void PerformanceTest::Run() {
   //
   // TODO: Your implementation
   for (uint32_t i = 0; i < nthreads; ++i) {
-    std::thread* tmp_thread;
-    workers.push_back(tmp_thread);
+    std::thread tmp_thread;
+    // std::thread* tmp_thread;
+    workers.push_back(&tmp_thread);
     ncommits.push_back(0);
     naborts.push_back(0);
   }
