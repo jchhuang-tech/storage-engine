@@ -47,25 +47,14 @@ void PerformanceTest::Run() {
     workers.push_back(tmp_thread);
     ncommits.push_back(0);
     naborts.push_back(0);
-
-
-    // workers.push_back(&std::thread(
-    //   [&](uint32_t i) {
-    //     ncommits[i] = 0;
-    //     naborts[i] = 0;
-    //     thread_start_barrier++;
-    //     while (!bench_start_barrier) {
-    //       // busy spin
-    //     }
-
-    //   },
-    //   i));
   }
   while (thread_start_barrier != nthreads) {
     // busy spin
   };
   bench_start_barrier = true;
   sleep(seconds);
+
+  
 
   // 6. Show stats
   std::cout << "=====================" << std::endl;
