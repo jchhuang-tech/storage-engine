@@ -13,11 +13,20 @@
 #include <iomanip>
 #include "perf.h"
 
+#include <unistd.h>
+#include <vector>
+
 namespace yase {
 
 PerformanceTest::PerformanceTest(uint32_t threads, uint32_t seconds) {
   // Initialize environment using passed in parameters and default values
   // TODO: Your implementation
+  this->nthreads = threads;
+  this->seconds = seconds;
+  // for (uint32_t i = 0; i < nthreads; i++){
+  //   std::thread new_thread;
+  //   workers.push_back(&new_thread);
+  // }
 }
 
 PerformanceTest::~PerformanceTest() {
@@ -33,6 +42,30 @@ void PerformanceTest::Run() {
   // 5. Issue a 'stop' signal to all threads using the shutdown variable and join all threads
   //
   // TODO: Your implementation
+  for (uint32_t i = 0; i < nthreads; ++i) {
+    std::thread* tmp_thread;
+    workers.push_back(tmp_thread);
+    ncommits.push_back(0);
+    naborts.push_back(0);
+
+
+    // workers.push_back(&std::thread(
+    //   [&](uint32_t i) {
+    //     ncommits[i] = 0;
+    //     naborts[i] = 0;
+    //     thread_start_barrier++;
+    //     while (!bench_start_barrier) {
+    //       // busy spin
+    //     }
+
+    //   },
+    //   i));
+  }
+  while (thread_start_barrier != nthreads) {
+    // busy spin
+  };
+  bench_start_barrier = true;
+  sleep(seconds);
 
   // 6. Show stats
   std::cout << "=====================" << std::endl;
