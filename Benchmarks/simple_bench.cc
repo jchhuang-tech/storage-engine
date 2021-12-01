@@ -117,7 +117,15 @@ bool SimpleBench::TxPointRead() {
   for (int i = 0; i < 10; i++) {
     uint64_t rand_key = rand() % FLAGS_table_size + 1;
     RID rid = index->Search((char*)&rand_key);
-    table->Read(rid, out_buf);
+    if (!rid.IsValid()) {
+      t.Abort();
+      return false;
+    }
+    bool ret = table->Read(rid, out_buf);
+    if (!ret) {
+      t.Abort();
+      return false;
+    }
   }
   free(out_buf);
 
@@ -150,9 +158,21 @@ bool SimpleBench::TxReadUpdate() {
   for (int i = 0; i < 10; i++) {
     uint64_t rand_key = rand() % FLAGS_table_size + 1;
     RID rid = index->Search((char*)&rand_key);
-    table->Read(rid, out_buf);
+    if (!rid.IsValid()) {
+      t.Abort();
+      return false;
+    }
+    bool ret = table->Read(rid, out_buf);
+    if (!ret) {
+      t.Abort();
+      return false;
+    }
     uint64_t new_value = *(uint64_t*)out_buf + 1;
-    table->Update(rid, (char*)&new_value);
+    ret = table->Update(rid, (char*)&new_value);
+    if (!ret) {
+      t.Abort();
+      return false;
+    }
   }
   free(out_buf);
 
@@ -192,17 +212,41 @@ bool SimpleBench::TxScanUpdate() {
   if (out_records.size() < rand_n_keys) {
     for (uint64_t i = 0; i < out_records.size(); i++) {
       RID rid = out_records[i].second;
-      table->Read(rid, out_buf);
+      if (!rid.IsValid()) {
+        t.Abort();
+        return false;
+      }
+      bool ret = table->Read(rid, out_buf);
+      if (!ret) {
+        t.Abort();
+        return false;
+      }
       uint64_t new_value = *(uint64_t*)out_buf + 1;
-      table->Update(rid, (char*)&new_value);
+      ret = table->Update(rid, (char*)&new_value);
+      if (!ret) {
+        t.Abort();
+        return false;
+      }
     }
   } else {
     for (uint64_t i = 0; i < 5; i++) {
       int pick = rand() % 5;
       RID rid = out_records[pick].second;
-      table->Read(rid, out_buf);
+      if (!rid.IsValid()) {
+        t.Abort();
+        return false;
+      }
+      bool ret = table->Read(rid, out_buf);
+      if (!ret) {
+        t.Abort();
+        return false;
+      }
       uint64_t new_value = *(uint64_t*)out_buf + 1;
-      table->Update(rid, (char*)&new_value);
+      ret = table->Update(rid, (char*)&new_value);
+      if (!ret) {
+        t.Abort();
+        return false;
+      }
     }
   }
   free(out_buf);
