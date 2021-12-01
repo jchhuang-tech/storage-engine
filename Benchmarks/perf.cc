@@ -39,7 +39,7 @@ void PerformanceTest::Run() {
   //
   // TODO: Your implementation
   for (uint32_t i = 0; i < nthreads; ++i) {
-    std::thread tmp_thread;
+    std::thread tmp_thread(&PerformanceTest::WorkerRun, this, i);
     // std::thread* tmp_thread;
     workers.push_back(&tmp_thread);
     ncommits.push_back(0);
