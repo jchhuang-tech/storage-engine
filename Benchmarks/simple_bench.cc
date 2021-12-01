@@ -64,13 +64,10 @@ void SimpleBench::Load() {
   // output an error message.
   //
   // TODO: Your implementation
-  char* record = (char*)malloc(8);
   for (uint64_t i = 1; i <= FLAGS_table_size; i++) {
-    strncpy(record, std::to_string(i).c_str(), 8);
-    RID rid = table->Insert(record);
-    index->Insert(std::to_string(i).c_str(), rid);
+    RID rid = table->Insert((char*)&i);
+    index->Insert((char*)&i, rid);
   }
-  free(record);
 }
 
 void SimpleBench::WorkerRun(uint32_t thread_id) {
@@ -119,7 +116,7 @@ bool SimpleBench::TxPointRead() {
   char* out_buf = (char*)malloc(8);
   for (int i = 0; i < 10; i++) {
     uint64_t rand_key = rand() % FLAGS_table_size + 1;
-    RID rid = index->Search(std::to_string(rand_key).c_str());
+    RID rid = index->Search((char*)&rand_key);
     table->Read(rid, out_buf);
   }
   free(out_buf);
@@ -152,10 +149,10 @@ bool SimpleBench::TxReadUpdate() {
   char* out_buf = (char*)malloc(8);
   for (int i = 0; i < 10; i++) {
     uint64_t rand_key = rand() % FLAGS_table_size + 1;
-    RID rid = index->Search(std::to_string(rand_key).c_str());
+    RID rid = index->Search((char*)&rand_key);
     table->Read(rid, out_buf);
-    *out_buf = (int) *out_buf + 1;
-    table->Update(rid, out_buf);
+    uint64_t new_value = *(uint64_t*)out_buf + 1;
+    table->Update(rid, (char*)&new_value);
   }
   free(out_buf);
 
@@ -191,21 +188,21 @@ bool SimpleBench::TxScanUpdate() {
   char* out_buf = (char*)malloc(8);
   std::vector<std::pair<char *, RID> > out_records;
 
-  index->ForwardScan(std::to_string(rand_key).c_str(), rand_n_keys, true, &out_records);
+  index->ForwardScan((char*)&rand_key, rand_n_keys, true, &out_records);
   if (out_records.size() < rand_n_keys) {
     for (uint64_t i = 0; i < out_records.size(); i++) {
       RID rid = out_records[i].second;
       table->Read(rid, out_buf);
-      *out_buf = (int) *out_buf + 1;
-      table->Update(rid, out_buf);
+      uint64_t new_value = *(uint64_t*)out_buf + 1;
+      table->Update(rid, (char*)&new_value);
     }
   } else {
     for (uint64_t i = 0; i < 5; i++) {
       int pick = rand() % 5;
       RID rid = out_records[pick].second;
       table->Read(rid, out_buf);
-      *out_buf = (int) *out_buf + 1;
-      table->Update(rid, out_buf);
+      uint64_t new_value = *(uint64_t*)out_buf + 1;
+      table->Update(rid, (char*)&new_value);
     }
   }
   free(out_buf);
