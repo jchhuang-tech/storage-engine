@@ -23,6 +23,9 @@ PerformanceTest::PerformanceTest(uint32_t threads, uint32_t seconds) {
   // TODO: Your implementation
   this->nthreads = threads;
   this->seconds = seconds;
+  thread_start_barrier = 0;
+  bench_start_barrier = false;
+  shutdown = false;
 }
 
 PerformanceTest::~PerformanceTest() {
@@ -38,12 +41,11 @@ void PerformanceTest::Run() {
   // 5. Issue a 'stop' signal to all threads using the shutdown variable and join all threads
   //
   // TODO: Your implementation
-  for (uint32_t i = 0; i < nthreads; ++i) {
-    std::thread tmp_thread(&PerformanceTest::WorkerRun, this, i);
-    // std::thread* tmp_thread;
-    workers.push_back(&tmp_thread);
+  for (uint32_t i = 0; i < nthreads; i++) {
     ncommits.push_back(0);
     naborts.push_back(0);
+    std::thread* tmp_thread = new std::thread(&yase::PerformanceTest::WorkerRun, this, i);
+    workers.push_back(tmp_thread);
   }
   while (thread_start_barrier != nthreads) {
     // busy spin
@@ -51,10 +53,11 @@ void PerformanceTest::Run() {
   bench_start_barrier = true;
   sleep(seconds);
   shutdown = true;
-  for (uint32_t i = 0; i < nthreads; ++i) {
-    std::thread* tmp_thread = workers.back();
+  for (uint32_t i = 0; i < workers.size(); ++i) {
+    std::thread* tmp_thread_out = workers.back();
     workers.pop_back();
-    tmp_thread->join();
+    tmp_thread_out->join();
+    delete tmp_thread_out;
   }
   
 
