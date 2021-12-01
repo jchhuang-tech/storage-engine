@@ -42,13 +42,8 @@ SimpleBench::SimpleBench() : PerformanceTest(FLAGS_threads, FLAGS_seconds) {
   // structure.
   //
   // TODO: Your implementation
-  // new (table) Table(FLAGS_tablefile.c_str(), 8);
-  yase::Table tmp_table(FLAGS_tablefile, 8);
-  table = &tmp_table;
-  // new (index) SkipList(8);
-  yase::SkipList tmp_skiplist(8);
-  index = &tmp_skiplist;
-
+  table = new Table(FLAGS_tablefile, 8);
+  index = new SkipList(8);
 }
 
 SimpleBench::~SimpleBench() {
@@ -70,10 +65,15 @@ void SimpleBench::Load() {
   //
   // TODO: Your implementation
   for (uint64_t i = 1; i <= FLAGS_table_size; i++) {
+    // LOG(ERROR);
     char* record = (char*)malloc(8);
+    // LOG(ERROR);
     strncpy(record, std::to_string(i).c_str(), 8);
+    // LOG(ERROR);
     RID rid = table->Insert(record);
+    // LOG(ERROR);
     index->Insert(std::to_string(i).c_str(), rid);
+    // LOG(ERROR);
   }
 }
 
@@ -92,11 +92,12 @@ void SimpleBench::WorkerRun(uint32_t thread_id) {
   while (!bench_start_barrier) {
     // busy spin
   }
-  std::random_device rd;
-  std::mt19937 gen(rd()); 
-  std::uniform_int_distribution<> rand(1, 100);
+  // std::random_device rd;
+  // std::mt19937 gen(rd()); 
+  // std::uniform_int_distribution<> rand(1, 100);
   while (!shutdown) {
-    uint64_t rand_num = rand(gen);
+    // uint64_t rand_num = rand(gen);
+    uint64_t rand_num = rand() % 100 + 1;
     if (rand_num <= FLAGS_point_read_pct) {
       TxPointRead() ? ncommits[thread_id]++ : naborts[thread_id]++;
     } else if (rand_num > FLAGS_point_read_pct && rand_num <= FLAGS_point_read_pct + FLAGS_read_update_pct) {
@@ -122,12 +123,13 @@ bool SimpleBench::TxPointRead() {
   // TODO: Your implementation
   yase::Transaction t;
 
-  std::random_device rd;
-  std::mt19937 gen(rd()); 
-  std::uniform_int_distribution<> rand(1, FLAGS_table_size);
+  // std::random_device rd;
+  // std::mt19937 gen(rd()); 
+  // std::uniform_int_distribution<> rand(1, FLAGS_table_size);
 
   for (int i = 0; i < 10; i++) {
-    uint64_t rand_key = rand(gen);
+    // uint64_t rand_key = rand(gen);
+    uint64_t rand_key = rand() % FLAGS_table_size + 1;
     char* out_buf = (char*)malloc(8);
     RID rid = index->Search(std::to_string(rand_key).c_str());
     table->Read(rid, out_buf);
@@ -158,12 +160,13 @@ bool SimpleBench::TxReadUpdate() {
   // TODO: Your implementation
   yase::Transaction t;
 
-  std::random_device rd;
-  std::mt19937 gen(rd()); 
-  std::uniform_int_distribution<> rand(1, FLAGS_table_size);
+  // std::random_device rd;
+  // std::mt19937 gen(rd()); 
+  // std::uniform_int_distribution<> rand(1, FLAGS_table_size);
 
   for (int i = 0; i < 10; i++) {
-    uint64_t rand_key = rand(gen);
+    // uint64_t rand_key = rand(gen);
+    uint64_t rand_key = rand() % FLAGS_table_size + 1;
     char* out_buf = (char*)malloc(8);
     RID rid = index->Search(std::to_string(rand_key).c_str());
     table->Read(rid, out_buf);
@@ -231,7 +234,7 @@ bool SimpleBench::TxScanUpdate() {
   }
 
   t.Commit();
-  return false;
+  return true;
 }
 
 }  // namespace yase
