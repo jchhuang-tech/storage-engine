@@ -42,8 +42,13 @@ SimpleBench::SimpleBench() : PerformanceTest(FLAGS_threads, FLAGS_seconds) {
   // structure.
   //
   // TODO: Your implementation
-  new (table) Table(FLAGS_tablefile, 8);
-  new (index) SkipList(8);
+  // new (table) Table(FLAGS_tablefile.c_str(), 8);
+  yase::Table tmp_table(FLAGS_tablefile, 8);
+  table = &tmp_table;
+  // new (index) SkipList(8);
+  yase::SkipList tmp_skiplist(8);
+  index = &tmp_skiplist;
+
 }
 
 SimpleBench::~SimpleBench() {
@@ -65,9 +70,10 @@ void SimpleBench::Load() {
   //
   // TODO: Your implementation
   for (uint64_t i = 1; i <= FLAGS_table_size; i++) {
-    char* record = (char*)&i;
+    char* record = (char*)malloc(8);
+    strncpy(record, std::to_string(i).c_str(), 8);
     RID rid = table->Insert(record);
-    index->Insert((char*) i, rid);
+    index->Insert(std::to_string(i).c_str(), rid);
   }
 }
 
@@ -114,7 +120,21 @@ bool SimpleBench::TxPointRead() {
   // 2. Follow S2PL when reading/modifying recods.
   //
   // TODO: Your implementation
-  return false;
+  yase::Transaction t;
+
+  std::random_device rd;
+  std::mt19937 gen(rd()); 
+  std::uniform_int_distribution<> rand(1, FLAGS_table_size);
+
+  for (int i = 0; i < 10; i++) {
+    uint64_t rand_key = rand(gen);
+    char* out_buf = (char*)malloc(8);
+    RID rid = index->Search(std::to_string(rand_key).c_str());
+    table->Read(rid, out_buf);
+  }
+
+  t.Commit();
+  return true;
 }
 
 bool SimpleBench::TxReadUpdate() {
@@ -136,7 +156,23 @@ bool SimpleBench::TxReadUpdate() {
   // 2. Follow S2PL when reading/modifying recods.
   //
   // TODO: Your implementation
-  return false;
+  yase::Transaction t;
+
+  std::random_device rd;
+  std::mt19937 gen(rd()); 
+  std::uniform_int_distribution<> rand(1, FLAGS_table_size);
+
+  for (int i = 0; i < 10; i++) {
+    uint64_t rand_key = rand(gen);
+    char* out_buf = (char*)malloc(8);
+    RID rid = index->Search(std::to_string(rand_key).c_str());
+    table->Read(rid, out_buf);
+    *out_buf = (int) *out_buf + 1;
+    table->Update(rid, out_buf);
+  }
+
+  t.Commit();
+  return true;
 }
 
 bool SimpleBench::TxScanUpdate() {
@@ -160,6 +196,41 @@ bool SimpleBench::TxScanUpdate() {
   //    properly.
   //
   // TODO: Your implementation
+  yase::Transaction t;
+
+  // std::random_device rd;
+  // std::mt19937 gen(rd()); 
+  // std::uniform_int_distribution<> rand(1, FLAGS_table_size);
+
+  // std::random_device rd2;
+  // std::mt19937 gen2(rd2()); 
+  // std::uniform_int_distribution<> rand2(1, 20);
+
+
+  uint64_t rand_key = rand() % 10000 + 1;
+  uint32_t rand_n_keys = rand() % 20 + 1;
+  char* out_buf = (char*)malloc(8);
+  std::vector<std::pair<char *, RID> > out_records;
+
+  index->ForwardScan(std::to_string(rand_key).c_str(), rand_n_keys, true, &out_records);
+  if (out_records.size() < rand_n_keys) {
+    for (uint64_t i = 0; i < out_records.size(); i++) {
+      RID rid = out_records[i].second;
+      table->Read(rid, out_buf);
+      *out_buf = (int) *out_buf + 1;
+      table->Update(rid, out_buf);
+    }
+  } else {
+    for (uint64_t i = 0; i < 5; i++) {
+      int pick = rand() % 5;
+      RID rid = out_records[pick].second;
+      table->Read(rid, out_buf);
+      *out_buf = (int) *out_buf + 1;
+      table->Update(rid, out_buf);
+    }
+  }
+
+  t.Commit();
   return false;
 }
 
