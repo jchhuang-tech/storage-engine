@@ -28,7 +28,7 @@ LogManager::LogManager(const char *log_filename, uint32_t logbuf_kb) {
   // TODO: Your implementation.
   logbuf_latch.lock();
   int ret = open(log_filename, (O_CREAT | O_RDWR | O_TRUNC), (S_IRWXU | S_IRWXG | S_IRWXO));
-  LOG_IF(FATAL, ret < 0) << "error: open failed";
+  LOG_IF(ERROR, ret < 0) << "error: open failed";
   fd = ret;
   logbuf_size = logbuf_kb * 1024;
   logbuf = (char*)malloc(logbuf_size);

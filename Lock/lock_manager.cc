@@ -70,6 +70,10 @@ bool LockManager::AcquireLock(Transaction *tx, RID &rid, LockRequest::Mode mode)
     return false;
   }
 
+  if (!rid.IsValid()){
+    return false;
+  }
+
   if (mode == LockRequest::NL){
     return true;
   }
@@ -230,6 +234,7 @@ bool Transaction::Commit() {
   //
   // TODO: Your implementation
   LogManager* log_manager = LogManager::Get();
+  LockManager* lock_manager = LockManager::Get();
   if (!log_manager){
     return false;
   }
@@ -237,12 +242,6 @@ bool Transaction::Commit() {
   ret = log_manager->LogCommit(timestamp);
   if (!ret){
     return false;
-  }
-  while (!locks.empty()){
-    ret = LockManager::Get()->ReleaseLock(this, *locks.begin());
-    if (!ret){
-      return false;
-    }
   }
   log_manager->logbuf_latch.lock();
   ret = log_manager->Flush();
@@ -253,6 +252,12 @@ bool Transaction::Commit() {
   ret = log_manager->LogEnd(timestamp);
   if (!ret){
     return false;
+  }
+  while (!locks.empty()){
+    ret = lock_manager->ReleaseLock(this, *locks.begin());
+    if (!ret){
+      return false;
+    }
   }
   state = kStateCommitted;
   return true;
@@ -266,6 +271,7 @@ uint64_t Transaction::Abort() {
   //
   // TODO: Your implementation
   LogManager* log_manager = LogManager::Get();
+  LockManager* lock_manager = LockManager::Get();
   if (!log_manager){
     return kInvalidTimestamp;
   }
@@ -273,12 +279,6 @@ uint64_t Transaction::Abort() {
   ret = log_manager->LogAbort(timestamp);
   if (!ret){
     return kInvalidTimestamp;
-  }
-  while (!locks.empty()){
-    ret = LockManager::Get()->ReleaseLock(this, *locks.begin());
-    if (!ret){
-      return kInvalidTimestamp;
-    }
   }
   log_manager->logbuf_latch.lock();
   ret = log_manager->Flush();
@@ -289,6 +289,12 @@ uint64_t Transaction::Abort() {
   ret = log_manager->LogEnd(timestamp);
   if (!ret){
     return kInvalidTimestamp;
+  }
+  while (!locks.empty()){
+    ret = lock_manager->ReleaseLock(this, *locks.begin());
+    if (!ret){
+      return kInvalidTimestamp;
+    }
   }
   state = kStateAborted;
   return timestamp;
