@@ -248,7 +248,7 @@ bool SimpleBench::TxScanUpdate() {
     }
   } else {
     for (uint64_t i = 0; i < 5; i++) {
-      int pick = rand() % 5;
+      uint64_t pick = rand() % out_records.size();
       RID rid = out_records[pick].second;
       if (!rid.IsValid()) {
         t.Abort();
