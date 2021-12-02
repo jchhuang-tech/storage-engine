@@ -70,6 +70,10 @@ bool LockManager::AcquireLock(Transaction *tx, RID &rid, LockRequest::Mode mode)
     return false;
   }
 
+  if (!rid.IsValid()){
+    return false;
+  }
+
   if (mode == LockRequest::NL){
     return true;
   }
@@ -157,6 +161,10 @@ bool LockManager::ReleaseLock(Transaction *tx, RID &rid) {
   if (!tx){
     return false;
   }
+
+  if (!rid.IsValid()){
+    return false;
+  }
   
   latch.lock();
   // if RID is not in lock table
@@ -230,6 +238,7 @@ bool Transaction::Commit() {
   //
   // TODO: Your implementation
   LogManager* log_manager = LogManager::Get();
+  LockManager* lock_manager = LockManager::Get();
   if (!log_manager){
     return false;
   }
@@ -238,7 +247,9 @@ bool Transaction::Commit() {
   if (!ret){
     return false;
   }
+  log_manager->logbuf_latch.lock();
   ret = log_manager->Flush();
+  log_manager->logbuf_latch.unlock();
   if (!ret){
     return false;
   }
@@ -247,7 +258,7 @@ bool Transaction::Commit() {
     return false;
   }
   while (!locks.empty()){
-    ret = LockManager::Get()->ReleaseLock(this, *locks.begin());
+    ret = lock_manager->ReleaseLock(this, *locks.begin());
     if (!ret){
       return false;
     }
@@ -264,6 +275,7 @@ uint64_t Transaction::Abort() {
   //
   // TODO: Your implementation
   LogManager* log_manager = LogManager::Get();
+  LockManager* lock_manager = LockManager::Get();
   if (!log_manager){
     return kInvalidTimestamp;
   }
@@ -272,7 +284,9 @@ uint64_t Transaction::Abort() {
   if (!ret){
     return kInvalidTimestamp;
   }
+  log_manager->logbuf_latch.lock();
   ret = log_manager->Flush();
+  log_manager->logbuf_latch.unlock();
   if (!ret){
     return kInvalidTimestamp;
   }
@@ -281,7 +295,7 @@ uint64_t Transaction::Abort() {
     return kInvalidTimestamp;
   }
   while (!locks.empty()){
-    ret = LockManager::Get()->ReleaseLock(this, *locks.begin());
+    ret = lock_manager->ReleaseLock(this, *locks.begin());
     if (!ret){
       return kInvalidTimestamp;
     }

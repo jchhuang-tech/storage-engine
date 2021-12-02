@@ -140,11 +140,11 @@ bool SimpleBench::TxPointRead() {
   free(out_buf);
   if (success) {
     bool t_ret = t.Commit();
-    LOG_IF(FATAL, !t_ret) << "error";
+    LOG_IF(ERROR, !t_ret) << "error";
     return true;
   } else {
     bool t_ret = t.Abort();
-    LOG_IF(FATAL, !t_ret) << "error";
+    LOG_IF(ERROR, !t_ret) << "error";
     return false;
   }
 }
@@ -201,11 +201,11 @@ bool SimpleBench::TxReadUpdate() {
   free(out_buf);
   if (success) {
     bool t_ret = t.Commit();
-    LOG_IF(FATAL, !t_ret) << "error";
+    LOG_IF(ERROR, !t_ret) << "error";
     return true;
   } else {
     bool t_ret = t.Abort();
-    LOG_IF(FATAL, !t_ret) << "error";
+    LOG_IF(ERROR, !t_ret) << "error";
     return false;
   }
 }
@@ -299,11 +299,11 @@ bool SimpleBench::TxScanUpdate() {
   
   if (success) {
     bool t_ret = t.Commit();
-    LOG_IF(FATAL, !t_ret) << "error";
+    LOG_IF(ERROR, !t_ret) << "error";
     return true;
   } else {
     bool t_ret = t.Abort();
-    LOG_IF(FATAL, !t_ret) << "error";
+    LOG_IF(ERROR, !t_ret) << "error";
     return false;
   }
 }
