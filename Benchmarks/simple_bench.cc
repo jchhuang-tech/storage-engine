@@ -17,7 +17,7 @@
 #include <random>
 
 // Command line arguments defined using gflags: 
-DEFINE_uint64(threads, 1, "Number of worker threads");
+DEFINE_uint64(threads, 8, "Number of worker threads");
 DEFINE_uint64(seconds, 10, "Number of seconds to run the benchmark");
 DEFINE_uint64(table_size, 10000, "Number of records to load in table");
 DEFINE_uint64(bpool_pages, 50, "Number of buffer pool pages");
@@ -112,6 +112,7 @@ bool SimpleBench::TxPointRead() {
   //
   // TODO: Your implementation
   yase::Transaction t;
+  auto *lockmgr = yase::LockManager::Get();
 
   char* out_buf = (char*)malloc(8);
   for (int i = 0; i < 10; i++) {
@@ -121,7 +122,12 @@ bool SimpleBench::TxPointRead() {
       t.Abort();
       return false;
     }
-    bool ret = table->Read(rid, out_buf);
+    bool ret = lockmgr->AcquireLock(&t, rid, LockRequest::Mode::SH);
+    if (!ret) {
+      t.Abort();
+      return false;
+    }
+    ret = table->Read(rid, out_buf);
     if (!ret) {
       t.Abort();
       return false;
@@ -153,6 +159,7 @@ bool SimpleBench::TxReadUpdate() {
   //
   // TODO: Your implementation
   yase::Transaction t;
+  auto *lockmgr = yase::LockManager::Get();
 
   char* out_buf = (char*)malloc(8);
   for (int i = 0; i < 10; i++) {
@@ -162,7 +169,12 @@ bool SimpleBench::TxReadUpdate() {
       t.Abort();
       return false;
     }
-    bool ret = table->Read(rid, out_buf);
+    bool ret = lockmgr->AcquireLock(&t, rid, LockRequest::Mode::XL);
+    if (!ret) {
+      t.Abort();
+      return false;
+    }
+    ret = table->Read(rid, out_buf);
     if (!ret) {
       t.Abort();
       return false;
@@ -202,6 +214,7 @@ bool SimpleBench::TxScanUpdate() {
   //
   // TODO: Your implementation
   yase::Transaction t;
+  auto *lockmgr = yase::LockManager::Get();
 
   uint64_t rand_key = rand() % 10000 + 1;
   uint32_t rand_n_keys = rand() % 20 + 1;
@@ -216,7 +229,12 @@ bool SimpleBench::TxScanUpdate() {
         t.Abort();
         return false;
       }
-      bool ret = table->Read(rid, out_buf);
+      bool ret = lockmgr->AcquireLock(&t, rid, LockRequest::Mode::XL);
+      if (!ret) {
+        t.Abort();
+        return false;
+      }
+      ret = table->Read(rid, out_buf);
       if (!ret) {
         t.Abort();
         return false;
@@ -236,7 +254,12 @@ bool SimpleBench::TxScanUpdate() {
         t.Abort();
         return false;
       }
-      bool ret = table->Read(rid, out_buf);
+      bool ret = lockmgr->AcquireLock(&t, rid, LockRequest::Mode::XL);
+      if (!ret) {
+        t.Abort();
+        return false;
+      }
+      ret = table->Read(rid, out_buf);
       if (!ret) {
         t.Abort();
         return false;
