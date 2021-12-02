@@ -161,6 +161,10 @@ bool LockManager::ReleaseLock(Transaction *tx, RID &rid) {
   if (!tx){
     return false;
   }
+
+  if (!rid.IsValid()){
+    return false;
+  }
   
   latch.lock();
   // if RID is not in lock table
