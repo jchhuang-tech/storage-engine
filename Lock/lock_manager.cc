@@ -238,7 +238,9 @@ bool Transaction::Commit() {
   if (!ret){
     return false;
   }
+  log_manager->logbuf_latch.lock();
   ret = log_manager->Flush();
+  log_manager->logbuf_latch.unlock();
   if (!ret){
     return false;
   }
@@ -272,7 +274,9 @@ uint64_t Transaction::Abort() {
   if (!ret){
     return kInvalidTimestamp;
   }
+  log_manager->logbuf_latch.lock();
   ret = log_manager->Flush();
+  log_manager->logbuf_latch.unlock();
   if (!ret){
     return kInvalidTimestamp;
   }
