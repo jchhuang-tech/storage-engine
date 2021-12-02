@@ -53,7 +53,7 @@ void PerformanceTest::Run() {
   bench_start_barrier = true;
   sleep(seconds);
   shutdown = true;
-  for (uint32_t i = 0; i < workers.size(); ++i) {
+  while (!workers.empty()) {
     std::thread* tmp_thread_out = workers.back();
     workers.pop_back();
     tmp_thread_out->join();
