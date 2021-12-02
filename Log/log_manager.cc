@@ -47,7 +47,7 @@ LogManager::~LogManager() {
   Flush();
   free(logbuf);
   int ret = close(fd);
-  LOG_IF(FATAL, ret < 0) << "error";
+  LOG_IF(ERROR, ret < 0) << strerror(errno);
   logbuf_latch.unlock();
 }
 
