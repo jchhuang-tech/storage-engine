@@ -114,29 +114,37 @@ bool SimpleBench::TxPointRead() {
   yase::Transaction t;
   auto *lockmgr = yase::LockManager::Get();
 
+  char* out_buf = (char*)malloc(8);
+  bool success = true;
   for (int i = 0; i < 10; i++) {
     uint64_t rand_key = rand() % FLAGS_table_size + 1;
     RID rid = index->Search((char*)&rand_key);
     if (!rid.IsValid()) {
-      t.Abort();
-      return false;
+      success = false;
+      break;
     }
     bool ret = lockmgr->AcquireLock(&t, rid, LockRequest::Mode::SH);
     if (!ret) {
-      t.Abort();
-      return false;
+      success = false;
+      break;
     }
-    char* out_buf = (char*)malloc(8);
     ret = table->Read(rid, out_buf);
-    free(out_buf);
     if (!ret) {
-      t.Abort();
-      return false;
+      success = false;
+      break;
     }
   }
 
-  t.Commit();
-  return true;
+  free(out_buf);
+  if (success) {
+    bool t_ret = t.Commit();
+    LOG_IF(FATAL, !t_ret) << "error";
+    return true;
+  } else {
+    bool t_ret = t.Abort();
+    LOG_IF(FATAL, !t_ret) << "error";
+    return false;
+  }
 }
 
 bool SimpleBench::TxReadUpdate() {
@@ -161,36 +169,43 @@ bool SimpleBench::TxReadUpdate() {
   yase::Transaction t;
   auto *lockmgr = yase::LockManager::Get();
 
+  char* out_buf = (char*)malloc(8);
+  bool success = true;
   for (int i = 0; i < 10; i++) {
     uint64_t rand_key = rand() % FLAGS_table_size + 1;
     RID rid = index->Search((char*)&rand_key);
     if (!rid.IsValid()) {
-      t.Abort();
-      return false;
+      success = false;
+      break;
     }
     bool ret = lockmgr->AcquireLock(&t, rid, LockRequest::Mode::XL);
     if (!ret) {
-      t.Abort();
-      return false;
+      success = false;
+      break;
     }
-    char* out_buf = (char*)malloc(8);
     ret = table->Read(rid, out_buf);
     if (!ret) {
-      t.Abort();
-      free(out_buf);
-      return false;
+      success = false;
+      break;
     }
     uint64_t new_value = *(uint64_t*)out_buf + 1;
-    free(out_buf);
     ret = table->Update(rid, (char*)&new_value);
     if (!ret) {
-      t.Abort();
-      return false;
+      success = false;
+      break;
     }
   }
 
-  t.Commit();
-  return true;
+  free(out_buf);
+  if (success) {
+    bool t_ret = t.Commit();
+    LOG_IF(FATAL, !t_ret) << "error";
+    return true;
+  } else {
+    bool t_ret = t.Abort();
+    LOG_IF(FATAL, !t_ret) << "error";
+    return false;
+  }
 }
 
 bool SimpleBench::TxScanUpdate() {
@@ -221,95 +236,74 @@ bool SimpleBench::TxScanUpdate() {
   uint32_t rand_n_keys = rand() % 20 + 1;
   std::vector<std::pair<char *, RID> > out_records;
 
+  char* out_buf = (char*)malloc(8);
+  bool success = true;
   index->ForwardScan((char*)&rand_key, rand_n_keys, true, &out_records);
   if (out_records.size() < rand_n_keys) {
     for (uint64_t i = 0; i < out_records.size(); i++) {
       RID rid = out_records[i].second;
       if (!rid.IsValid()) {
-        for (auto &r : out_records) {
-          free(r.first);
-        }
-        t.Abort();
-        return false;
+        success = false;
+        break;
       }
       bool ret = lockmgr->AcquireLock(&t, rid, LockRequest::Mode::XL);
       if (!ret) {
-        for (auto &r : out_records) {
-          free(r.first);
-        }
-        t.Abort();
-        return false;
+        success = false;
+        break;
       }
-      char* out_buf = (char*)malloc(8);
       ret = table->Read(rid, out_buf);
       if (!ret) {
-        for (auto &r : out_records) {
-          free(r.first);
-        }
-        free(out_buf);
-        t.Abort();
-        return false;
+        success = false;
+        break;
       }
       uint64_t new_value = *(uint64_t*)out_buf + 1;
-      free(out_buf);
       ret = table->Update(rid, (char*)&new_value);
       if (!ret) {
-        for (auto &r : out_records) {
-          free(r.first);
-        }
-        t.Abort();
-        return false;
+        success = false;
+        break;
       }
     }
   } else {
     for (uint64_t i = 0; i < 5; i++) {
       uint64_t pick = rand() % out_records.size();
-      // LOG(ERROR) << pick;
-      // LOG(ERROR) << out_records.size();
       RID rid = out_records[pick].second;
       if (!rid.IsValid()) {
-        for (auto &r : out_records) {
-          free(r.first);
-        }
-        t.Abort();
-        return false;
+        success = false;
+        break;
       }
       bool ret = lockmgr->AcquireLock(&t, rid, LockRequest::Mode::XL);
       if (!ret) {
-        for (auto &r : out_records) {
-          free(r.first);
-        }
-        t.Abort();
-        return false;
+        success = false;
+        break;
       }
-      char* out_buf = (char*)malloc(8);
       ret = table->Read(rid, out_buf);
       if (!ret) {
-        for (auto &r : out_records) {
-          free(r.first);
-        }
-        free(out_buf);
-        t.Abort();
-        return false;
+        success = false;
+        break;
       }
       uint64_t new_value = *(uint64_t*)out_buf + 1;
-      free(out_buf);
       ret = table->Update(rid, (char*)&new_value);
       if (!ret) {
-        for (auto &r : out_records) {
-          free(r.first);
-        }
-        t.Abort();
-        return false;
+        success = false;
+        break;
       }
     }
   }
+
+  free(out_buf);
   for (auto &r : out_records) {
     free(r.first);
   }
-
-  t.Commit();
-  return true;
+  
+  if (success) {
+    bool t_ret = t.Commit();
+    LOG_IF(FATAL, !t_ret) << "error";
+    return true;
+  } else {
+    bool t_ret = t.Abort();
+    LOG_IF(FATAL, !t_ret) << "error";
+    return false;
+  }
 }
 
 }  // namespace yase
@@ -335,19 +329,13 @@ int main(int argc, char **argv) {
   std::cout << "  scan-update: " << FLAGS_scan_update_pct << std::endl;
 
   yase::SimpleBench test;
-  // LOG(ERROR);
   test.Load();
-  // LOG(ERROR);
   test.Run();
-  // LOG(ERROR);
 
   // Uninitialize buffer manager, lock manager and log manager
   yase::LockManager::Uninitialize();
-  // LOG(ERROR);
   yase::BufferManager::Uninitialize();
-  // LOG(ERROR);
   yase::LogManager::Uninitialize();
-  // LOG(ERROR);
 
   return 0;
 }
