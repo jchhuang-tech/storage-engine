@@ -66,7 +66,9 @@ void SimpleBench::Load() {
   // TODO: Your implementation
   for (uint64_t i = 1; i <= FLAGS_table_size; i++) {
     RID rid = table->Insert((char*)&i);
-    index->Insert((char*)&i, rid);
+    LOG_IF(ERROR, !rid.IsValid()) << "error";
+    bool ret = index->Insert((char*)&i, rid);
+    LOG_IF(ERROR, !ret) << "error";
   }
 }
 
